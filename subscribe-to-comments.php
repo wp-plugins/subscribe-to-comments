@@ -573,7 +573,7 @@ class sg_subscribe
 		if ($comment->comment_approved == '1' && $comment->comment_type == '') {
 		// Comment has been approved and isn't a trackback or a pingback, so we should send out notifications
 		
-		$message  = sprintf(__("There is a new comment on the post \"%s\"", 'subscribe_to_comments') . ". \n%s\n\n"), stripslashes($post->post_title), get_permalink($comment->comment_post_ID));
+		$message  = sprintf(__("There is a new comment on the post \"%s\"", 'subscribe_to_comments') . ". \n%s\n\n", stripslashes($post->post_title), get_permalink($comment->comment_post_ID));
 		$message .= sprintf(__("Author: %s\n", 'subscribe_to_comments'), $comment->comment_author);
 		$message .= __("Comment:\n", 'subscribe_to_comments') . stripslashes($comment->comment_content) . "\n\n";
 		$message .= __("See all comments on this post here:\n", 'subscribe_to_comments');
