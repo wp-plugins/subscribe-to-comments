@@ -76,11 +76,12 @@ return $id;
 /* This is NOT inserted automaticallly... you must place it yourself    */
 /* -------------------------------------------------------------------- */
 function show_manual_subscription_form () {
-	global $id, $sg_subscribe;
+	global $id, $sg_subscribe, $user_email;
 	sg_subscribe_start();
 	$sg_subscribe->show_errors('solo_subscribe', '<div class="solo-subscribe-errors">', '</div>', __('<strong>Error: </strong>', 'subscribe_to_comments'), '<br />');
 
-if ( !$sg_subscribe->current_viewer_subscription_status() ) : ?>
+if ( !$sg_subscribe->current_viewer_subscription_status() ) : 
+	get_currentuserinfo(); ?>
 
 <?php /* ------------------------------------------------------------------- */ ?>
 <?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
@@ -95,7 +96,7 @@ if ( !$sg_subscribe->current_viewer_subscription_status() ) : ?>
 	<?php _e('Subscribe without commenting', 'subscribe_to_comments'); ?>
 	<br />
 	<label for="solo-subscribe-email"><?php _e('E-Mail:', 'subscribe_to_comments'); ?> 
-	<input type="text" name="email" id="solo-subscribe-email" size="22" /></label>
+	<input type="text" name="email" id="solo-subscribe-email" size="22" value="<?php echo $user_email; ?>" /></label>
 	<input type="submit" name="submit" value="<?php _e('Subscribe', 'subscribe_to_comments'); ?>" />
 	</p>
 	</form>
