@@ -380,10 +380,17 @@ class sg_subscribe
 	
 
 	function solo_subscribe ($email, $postid) {
-		global $wpdb, $cache_userdata;
+		global $wpdb, $cache_userdata, $user_email;
 		$postid = (int) $postid;
 		$email = strtolower($email);
-		if ( !is_email($email) ) $this->add_error(__('Please provide a valid e-mail address.', 'subscribe_to_comments'),'solo_subscribe');
+		if ( !is_email($email) ) {
+			get_currentuserinfo();
+			if ( is_email($user_email) )
+				$email = strtolower($user_email);
+			else
+				$this->add_error(__('Please provide a valid e-mail address.', 'subscribe_to_comments'),'solo_subscribe');	
+		}
+		
 		if ( ( $email == $this->site_email && is_email($this->site_email) ) || ( $email == get_settings('admin_email') && is_email(get_settings('admin_email')) ) ) $this->add_error(__('This e-mail address may not be subscribed', 'subscribe_to_comments'),'solo_subscribe');
 		
 		if ( is_array($this->subscriptions_from_email($email)) )
@@ -730,8 +737,11 @@ class sg_subscribe
 
 function sg_subscribe_start() {
 	global $sg_subscribe;
-	if (!$sg_subscribe)
+	
+	if (!$sg_subscribe) {
+		load_plugin_textdomain('subscribe_to_comments');
 		$sg_subscribe = new sg_subscribe();
+	}
 }
 
 function sg_subscribe_admin() {
