@@ -764,7 +764,7 @@ add_action('admin_head', create_function('$a', 'global $sg_subscribe; sg_subscri
 
 
 // detect "subscribe without commenting" attempts
-add_action('init', function('$a',
+add_action('init', create_function('$a',
 'global $sg_subscribe;
 if($_POST[\'solo-comment-subscribe\'] == \'solo-comment-subscribe\' && is_numeric($_POST[\'postid\']) ) {
 	sg_subscribe_start();
