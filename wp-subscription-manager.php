@@ -91,7 +91,7 @@ echo $sg_subscribe->before_manager;
 } else { ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
-<title><?php bloginfo('name'); ?> <?php _e('Comment Subscription Manager', 'subscribe-to-comments'); ?></title>
+<title><?php printf(__('%s Comment Subscription Manager', 'subscribe-to-comments'), bloginfo('name')); ?></title>
 
 	<style type="text/css" media="screen">
 		@import url( <?php echo get_settings('siteurl'); ?>/wp-admin/wp-admin.css );
