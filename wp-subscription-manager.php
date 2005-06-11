@@ -6,12 +6,12 @@ if (!function_exists('sg_subscribe_start')) {
 	require('./wp-blog-header.php');
 	
 	if (!function_exists('sg_subscribe_start'))
-		die (__('You must activate the "Subscribe to Comments" plugin in the WordPress admin panel', 'subscribe_to_comments'));
+		die (__('You must activate the "Subscribe to Comments" plugin in the WordPress admin panel', 'subscribe-to-comments'));
 	
 	sg_subscribe_start();
 	$sg_subscribe->form_action = 'wp-subscription-manager.php';
 	$sg_subscribe->standalone = true;
-	ob_start(create_function('$a', 'return str_replace("<title>", "<title> " . __("Subscription Manager", "subscribe_to_comments") . " &raquo; ", $a);'));
+	ob_start(create_function('$a', 'return str_replace("<title>", "<title> " . __("Subscription Manager", "subscribe-to-comments") . " &raquo; ", $a);'));
 } else {
 	sg_subscribe_start();
 	$sg_subscribe->form_action = 'edit.php?page=subscribe-to-comments.php';
@@ -23,7 +23,7 @@ $sg_subscribe->manager_init();
 get_currentuserinfo();
 
 if ( !$sg_subscribe->validate_key() )
-	die ( __('You may not access this page without a valid key.', 'subscribe_to_comments') );
+	die ( __('You may not access this page without a valid key.', 'subscribe-to-comments') );
 
 $sg_subscribe->determine_action();
 
@@ -31,7 +31,7 @@ switch ($sg_subscribe->action) :
 	
 	case "change_email" :
 		if ( $sg_subscribe->change_email() ) {
-		$sg_subscribe->add_message(sprintf(__('All notifications that were formerly sent to <strong>%s</strong> will now be sent to <strong>%s</strong>!', 'subscribe_to_comments'), $sg_subscribe->email, $sg_subscribe->new_email));
+		$sg_subscribe->add_message(sprintf(__('All notifications that were formerly sent to <strong>%s</strong> will now be sent to <strong>%s</strong>!', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->new_email));
 		// change info to the new email
 		$sg_subscribe->email = $sg_subscribe->new_email;
 		unset($sg_subscribe->new_email);
@@ -43,38 +43,38 @@ switch ($sg_subscribe->action) :
 	case "remove_subscriptions" :
 		$postsremoved = $sg_subscribe->remove_subscriptions($_POST['subscrips']);
 		if ( $postsremoved > 0 )
-		$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> %s removed successfully.', 'subscribe_to_comments'), $postsremoved, ($postsremoved != 1) ? __('subscriptions', 'subscribe_to_comments') : __('subscription', 'subscribe_to_comments')));
+		$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> %s removed successfully.', 'subscribe-to-comments'), $postsremoved, ($postsremoved != 1) ? __('subscriptions', 'subscribe-to-comments') : __('subscription', 'subscribe-to-comments')));
 		break;
 		
 	case "remove_block" :
 		if ($sg_subscribe->remove_block($sg_subscribe->email))
-			$sg_subscribe->add_message(sprintf(__('The block on <strong>%s</strong> has been successfully removed.', 'subscribe_to_comments'), $sg_subscribe->email));
+			$sg_subscribe->add_message(sprintf(__('The block on <strong>%s</strong> has been successfully removed.', 'subscribe-to-comments'), $sg_subscribe->email));
 		else
-			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> isn\'t blocked!', 'subscribe_to_comments'), $sg_subscribe->email), 'manager');
+			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> isn\'t blocked!', 'subscribe-to-comments'), $sg_subscribe->email), 'manager');
 		break;
 		
 	case "email_change_request" :
 		if ($sg_subscribe->is_blocked($sg_subscribe->email))
-			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has been blocked from receiving notifications.  You will have to have the administrator remove the block before you will be able to change your notification address.', 'subscribe_to_comments'), $sg_subscribe->email));
+			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has been blocked from receiving notifications.  You will have to have the administrator remove the block before you will be able to change your notification address.', 'subscribe-to-comments'), $sg_subscribe->email));
 		else
 			if ($sg_subscribe->change_email_request($sg_subscribe->email, $sg_subscribe->new_email))
-				$sg_subscribe->add_message(sprintf(__('Your change of e-mail request was successfully received.  Please check your old account (<strong>%s</strong>) in order to confirm the change.', 'subscribe_to_comments'), $sg_subscribe->email));
+				$sg_subscribe->add_message(sprintf(__('Your change of e-mail request was successfully received.  Please check your old account (<strong>%s</strong>) in order to confirm the change.', 'subscribe-to-comments'), $sg_subscribe->email));
 		break;
 		
 	case "block_request" :
 		if ($sg_subscribe->block_email_request($sg_subscribe->email ))
-			$sg_subscribe->add_message(sprintf(__('Your request to block <strong>%s</strong> from receiving any further notifications has been received.  In order for you to complete the block, please check your e-mail and click on the link in the message that has been sent to you.', 'subscribe_to_comments'), $sg_subscribe->email));
+			$sg_subscribe->add_message(sprintf(__('Your request to block <strong>%s</strong> from receiving any further notifications has been received.  In order for you to complete the block, please check your e-mail and click on the link in the message that has been sent to you.', 'subscribe-to-comments'), $sg_subscribe->email));
 		break;
 		
 	case "solo_subscribe" :
-		$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> has been successfully subscribed to %s', 'subscribe_to_comments'), $sg_subscribe->email, $sg_subscribe->entry_link($_GET['subscribeid'])));
+		$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> has been successfully subscribed to %s', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->entry_link($_GET['subscribeid'])));
 		break;
 		
 	case "block" :
 		if ($sg_subscribe->add_block($sg_subscribe->email)) 
-			$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> has been added to the "do not mail" list. You will no longer receive any notifications from this site. If this was done in error, please contact the <a href="mailto:%s">site administrator</a> to remove this block.', 'subscribe_to_comments'), $sg_subscribe->email, $sg_subscribe->site_email));
+			$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> has been added to the "do not mail" list. You will no longer receive any notifications from this site. If this was done in error, please contact the <a href="mailto:%s">site administrator</a> to remove this block.', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->site_email));
 		else
-			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has already been blocked!', 'subscribe_to_comments'), $sg_subscribe->email), 'manager');
+			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has already been blocked!', 'subscribe-to-comments'), $sg_subscribe->email), 'manager');
 		$sg_subscribe->key = md5($sg_subscribe->email . DB_PASSWORD);
 		$sg_subscribe->validate_key();
 		break;
@@ -91,7 +91,7 @@ echo $sg_subscribe->before_manager;
 } else { ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
-<title><?php bloginfo('name'); ?> <?php _e('Comment Subscription Manager', 'subscribe_to_comments'); ?></title>
+<title><?php bloginfo('name'); ?> <?php _e('Comment Subscription Manager', 'subscribe-to-comments'); ?></title>
 
 	<style type="text/css" media="screen">
 		@import url( <?php echo get_settings('siteurl'); ?>/wp-admin/wp-admin.css );
@@ -113,10 +113,10 @@ echo $sg_subscribe->before_manager;
 
 
 <div class="wrap">
-<h2><?php bloginfo('name'); ?> <?php _e('Comment Subscription Manager', 'subscribe_to_comments'); ?></h2>
+<h2><?php bloginfo('name'); ?> <?php _e('Comment Subscription Manager', 'subscribe-to-comments'); ?></h2>
 
 <?php if (!empty($sg_subscribe->ref)) : ?>
-<?php $sg_subscribe->add_message(sprintf(__('Return to the page you were viewing: %s', 'subscribe_to_comments'), $sg_subscribe->entry_link(url_to_postid($sg_subscribe->ref), $sg_subscribe->ref))); ?>
+<?php $sg_subscribe->add_message(sprintf(__('Return to the page you were viewing: %s', 'subscribe-to-comments'), $sg_subscribe->entry_link(url_to_postid($sg_subscribe->ref), $sg_subscribe->ref))); ?>
 <?php $sg_subscribe->show_messages(); ?>
 <?php endif; ?>	
 
@@ -127,10 +127,10 @@ echo $sg_subscribe->before_manager;
 <?php if ($user_level >= 8) : ?>
 	
 	<fieldset class="options">
-		<legend><?php _e('Remove Block', 'subscribe_to_comments'); ?></legend>
+		<legend><?php _e('Remove Block', 'subscribe-to-comments'); ?></legend>
 	
 		<p>
-		<?php printf(__('Click the button below to remove the block on <strong>%s</strong>.  This should only be done if the user has specifically requested it.', 'subscribe_to_comments'), $sg_subscribe->email); ?>
+		<?php printf(__('Click the button below to remove the block on <strong>%s</strong>.  This should only be done if the user has specifically requested it.', 'subscribe-to-comments'), $sg_subscribe->email); ?>
 		</p>
 		
 		<form name="removeBlock" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
@@ -138,7 +138,7 @@ echo $sg_subscribe->before_manager;
 <?php $sg_subscribe->hidden_form_fields(); ?>
 		
 		<p class="submit">
-		<input type="submit" name="submit" value="<?php _e('Remove Block &raquo;', 'subscribe_to_comments'); ?>" />
+		<input type="submit" name="submit" value="<?php _e('Remove Block &raquo;', 'subscribe-to-comments'); ?>" />
 		</p>
 		</form>
 	</fieldset>
@@ -146,10 +146,10 @@ echo $sg_subscribe->before_manager;
 <?php else : ?>
 
 	<fieldset class="options">
-		<legend><?php _e('Blocked', 'subscribe_to_comments'); ?></legend>
+		<legend><?php _e('Blocked', 'subscribe-to-comments'); ?></legend>
 
 		<p>
-		<?php printf(__('You have indicated that you do not wish to receive any notifications at <strong>%s</strong> from this site. If this is incorrect, or if you wish to have the block removed, please contact the <a href="mailto:%s">site administrator</a>.', 'subscribe_to_comments'), $sg_subscribe->email, $sg_subscribe->site_email); ?>
+		<?php printf(__('You have indicated that you do not wish to receive any notifications at <strong>%s</strong> from this site. If this is incorrect, or if you wish to have the block removed, please contact the <a href="mailto:%s">site administrator</a>.', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->site_email); ?>
 		</p>
 	</fieldset>
 
@@ -163,9 +163,9 @@ echo $sg_subscribe->before_manager;
 
 <?php if (isset($sg_subscribe->email) && !is_array($postlist) && $sg_subscribe->email != $sg_subscribe->site_email && $sg_subscribe->email != get_bloginfo('admin_email') ) { ?>
 	<?php if (is_email($sg_subscribe->email)) : ?>
-		<?php $sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not subscribed to any posts on this site.', 'subscribe_to_comments'), $sg_subscribe->email)); ?>
+		<?php $sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not subscribed to any posts on this site.', 'subscribe-to-comments'), $sg_subscribe->email)); ?>
 	<?php else : ?>
-		<?php $sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not a valid e-mail address.', 'subscribe_to_comments'), $sg_subscribe->email)); ?>
+		<?php $sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not a valid e-mail address.', 'subscribe-to-comments'), $sg_subscribe->email)); ?>
 	<?php endif; ?>	
 <?php } ?>
 
@@ -177,10 +177,10 @@ echo $sg_subscribe->before_manager;
 <?php if ( $user_level >= 8 ) { ?>
 	
 	<fieldset class="options">
-		<legend><?php _e('Find Subscriptions'); ?></legend>
+		<legend><?php _e('Find Subscriptions', 'subscribe-to-comments'); ?></legend>
 		
 		<p>
-		<?php _e('Enter an e-mail address to view its subscriptions or undo a block.', 'subscribe_to_comments'); ?>
+		<?php _e('Enter an e-mail address to view its subscriptions or undo a block.', 'subscribe-to-comments'); ?>
 		</p>
 		
 		<form name="getemail" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
@@ -188,7 +188,7 @@ echo $sg_subscribe->before_manager;
 		
 		<p>
 		<input name="email" type="text" id="email" size="40" />
-		<input type="submit" value="<?php _e('Search &raquo;'); ?>" />
+		<input type="submit" value="<?php _e('Search &raquo;', 'subscribe-to-comments'); ?>" />
 		</p>
 		</form>	
 	</fieldset>
@@ -217,7 +217,7 @@ for( i = 0, n = form.elements.length; i < n; i++ ) {
 		<legend><?php _e('Subscriptions'); ?></legend>
 			
 			<p>
-			<?php printf(__('<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click "Remove Selected Subscription(s)" at the bottom of the list.', 'subscribe_to_comments'), $sg_subscribe->email); ?>
+			<?php printf(__('<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click "Remove Selected Subscription(s)" at the bottom of the list.', 'subscribe-to-comments'), $sg_subscribe->email); ?>
 			</p>
 			
 			<form name="removeSubscription" id="removeSubscription" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
@@ -231,54 +231,54 @@ for( i = 0, n = form.elements.length; i < n; i++ ) {
 			</ol>
 			
 			<p>
-			<a href="javascript:;" onclick="checkAll(document.getElementById('removeSubscription')); return false; "><?php _e('Invert Checkbox Selection', 'subscribe_to_comments'); ?></a>
+			<a href="javascript:;" onclick="checkAll(document.getElementById('removeSubscription')); return false; "><?php _e('Invert Checkbox Selection', 'subscribe-to-comments'); ?></a>
 			</p>
 						
 			<p class="submit">
-			<input type="submit" name="submit" value="<?php _e('Remove Selected Subscription(s) &raquo;', 'subscribe_to_comments'); ?>" />
+			<input type="submit" name="submit" value="<?php _e('Remove Selected Subscription(s) &raquo;', 'subscribe-to-comments'); ?>" />
 			</p>
 			</form>
 	</fieldset>
 </div>
 
 <div class="wrap">
-<h2><?php _e('Advanced Options', 'subscribe_to_comments'); ?></h2>
+<h2><?php _e('Advanced Options', 'subscribe-to-comments'); ?></h2>
 
 	<fieldset class="options">
-		<legend><?php _e('Block All Notifications', 'subscribe_to_comments'); ?></legend>
+		<legend><?php _e('Block All Notifications', 'subscribe-to-comments'); ?></legend>
 		
 			<form name="blockemail" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
 			<input type="hidden" name="blockemail" value="blockemail" />
 <?php $sg_subscribe->hidden_form_fields(); ?>
 			
 			<p>
-			<?php printf(__('If you would like <strong>%s</strong> to be blocked from receiving any notifications from this site, click the button below.  This should be reserved for cases where someone is signing you up for notifications without your consent.', 'subscribe_to_comments'), $sg_subscribe->email); ?>
+			<?php printf(__('If you would like <strong>%s</strong> to be blocked from receiving any notifications from this site, click the button below.  This should be reserved for cases where someone is signing you up for notifications without your consent.', 'subscribe-to-comments'), $sg_subscribe->email); ?>
 			</p>
 			
 			<p class="submit">
-			<input type="submit" name="submit" value="<?php _e('Block Notifications &raquo;', 'subscribe_to_comments'); ?>" />
+			<input type="submit" name="submit" value="<?php _e('Block Notifications &raquo;', 'subscribe-to-comments'); ?>" />
 			</p>
 			</form>			
 	</fieldset>
 			
 	<fieldset class="options">
-		<legend><?php _e('Change E-mail Address', 'subscribe_to_comments'); ?></legend>
+		<legend><?php _e('Change E-mail Address', 'subscribe-to-comments'); ?></legend>
 
 			<form name="changeemailrequest" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
 			<input type="hidden" name="changeemailrequest" value="changeemailrequest" />
 <?php $sg_subscribe->hidden_form_fields(); ?>
 			
 			<p>
-			<?php printf(__('If you would like to change the e-mail address for your subscriptions, enter the new address below.  You will be required to verify this request by clicking a special link sent to your current address (<strong>%s</strong>).', 'subscribe_to_comments'), $sg_subscribe->email); ?>
+			<?php printf(__('If you would like to change the e-mail address for your subscriptions, enter the new address below.  You will be required to verify this request by clicking a special link sent to your current address (<strong>%s</strong>).', 'subscribe-to-comments'), $sg_subscribe->email); ?>
 			</p>
 			
 			<p>
-			<?php _e('New E-mail Address:', 'subscribe_to_comments'); ?> 
+			<?php _e('New E-mail Address:', 'subscribe-to-comments'); ?> 
 			<input name="new_email" type="text" id="new_email" size="40" />
 			</p>
 			
 			<p class="submit">
-			<input type="submit" name="submit" value="<?php _e('Change E-mail Address &raquo;', 'subscribe_to_comments'); ?>" />
+			<input type="submit" name="submit" value="<?php _e('Change E-mail Address &raquo;', 'subscribe-to-comments'); ?>" />
 			</p>
 			</form>
 	</fieldset>
