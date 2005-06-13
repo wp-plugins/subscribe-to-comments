@@ -98,6 +98,9 @@ echo $sg_subscribe->before_manager;
 	</style>
 	
 	<link rel="stylesheet" type="text/css" media="print" href="<?php echo get_settings('siteurl'); ?>/print.css" />
+	
+	<meta http-equiv="Content-Type" content="text/plain;
+charset=<?php bloginfo('charset'); ?>" />
 
 <?php $sg_subscribe->sg_wp_head(); ?>
 
