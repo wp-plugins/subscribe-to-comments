@@ -35,6 +35,10 @@
 
 <h2>Notes</h2>
 <ul>
+<li>The function &gt;?php comment_subscription_status(); ?&gt; can be used within the comments loop to determine if a comment's author is subscribed or not.  e.g.
+<pre><code>&lt;?php if (comment_subscription_status()) { ?&gt;
+Subscribed
+&lt;?php } ?&gt;</code></pre></li>
 <li>You need to be a logged-in WordPress user of 8 or above in order to search for subscriptions on random e-mail addresses or to remove a "do not mail" block.</li>
 <li>The author of the post is always determined to be subscribed, and thus will never see the "subscribe" checkbox for his entries, but instead will see the "entry author" message.</li>
 <li>Users are never e-mailed notifications for their own comments. (important that you know that for testing out the plugin)</li>
@@ -78,10 +82,10 @@ text-align: right;
 
 
 .updated {
-	background: #B9D6EF;
-	border: 1px solid #589bd2;
-	margin: 1em 5% 10px;
-	padding: 0 1em;
+background: #B9D6EF;
+border: 1px solid #589bd2;
+margin: 1em 5% 10px;
+padding: 0 1em;
 }
 
 .updated-error {
@@ -95,8 +99,8 @@ padding: 0;
 }
 
 div.warp li {
-	margin-bottom: 6px;
-	line-height: 130%;
+margin-bottom: 6px;
+line-height: 130%;
 }
 /* END SUBSCRIPTION MANAGER STYLE */
 
