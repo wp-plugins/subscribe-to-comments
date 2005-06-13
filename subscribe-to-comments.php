@@ -34,7 +34,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* ------------------------------------------------------------------- */ ?>
 
 	<p style="clear: both;" class="subscribe-to-comments">
-        <input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: 20px;" <?php if ($sg_subscribe->default_subscribed) echo 'checked="checked" '; ?>/>
+        <input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ($sg_subscribe->default_subscribed) echo 'checked="checked" '; ?>/>
         <label for="subscribe"><?php echo $sg_subscribe->not_subscribed_text; ?></label>
 	</p>
 
