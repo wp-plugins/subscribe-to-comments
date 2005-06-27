@@ -627,7 +627,7 @@ class sg_subscribe
 		$subject = '[' . get_bloginfo('name') . '] ' . $subject;
 		$headers  = "From: ".$this->site_name." <".$this->site_email.">\n";
 		$headers .= "MIME-Version: 1.0\n" . "Content-Type: text/plain; charset=\"" . get_settings('blog_charset') . "\"\n";
-		return mail ($to, $subject, $message, $headers);		
+		return wp_mail($to, $subject, $message, $headers);		
 	}
 
 	
