@@ -2,9 +2,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Subscribe to Comments 2.0\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2005-06-12 02:47-0500\n"
+"PO-Revision-Date: 2005-07-11 18:42-0500\n"
 "Last-Translator: Mark Jaquith <mark.i18n@txfx.net>\n"
-"Language-Team: Mark Jaquith\n"
+"Language-Team: Mark Jaquith <mark.wordpress@txfx.net>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -196,17 +196,17 @@ msgstr ""
 msgid "You are the author of this entry.  <a href=\"[manager_link]\">Manage subscriptions</a>."
 msgstr ""
 
-# c:\stc/subscribe-to-comments.php:723
-# c:\stc/wp-subscription-manager.php:116
+# c:\stc/subscribe-to-comments.php:813
+# c:\stc/wp-subscription-manager.php:119
 msgid "Comment Subscription Manager"
 msgstr ""
 
-# c:\stc/subscribe-to-comments.php:723
-# c:\stc/wp-subscription-manager.php:217
+# c:\stc/subscribe-to-comments.php:813
+# c:\stc/wp-subscription-manager.php:220
 msgid "Subscriptions"
 msgstr ""
 
-# c:\stc/subscribe-to-comments.php:728
+# c:\stc/subscribe-to-comments.php:818
 msgid "Subscribe to Comments"
 msgstr ""
 
@@ -281,99 +281,99 @@ msgstr ""
 msgid "%s Comment Subscription Manager"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:119
+# c:\stc/wp-subscription-manager.php:122
 #, php-format
 msgid "Return to the page you were viewing: %s"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:130
+# c:\stc/wp-subscription-manager.php:133
 msgid "Remove Block"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:133
+# c:\stc/wp-subscription-manager.php:136
 #, php-format
 msgid "Click the button below to remove the block on <strong>%s</strong>.  This should only be done if the user has specifically requested it."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:141
+# c:\stc/wp-subscription-manager.php:144
 msgid "Remove Block &raquo;"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:149
+# c:\stc/wp-subscription-manager.php:152
 msgid "Blocked"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:152
+# c:\stc/wp-subscription-manager.php:155
 #, php-format
 msgid "You have indicated that you do not wish to receive any notifications at <strong>%s</strong> from this site. If this is incorrect, or if you wish to have the block removed, please contact the <a href=\"mailto:%s\">site administrator</a>."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:166
+# c:\stc/wp-subscription-manager.php:169
 #, php-format
 msgid "<strong>%s</strong> is not subscribed to any posts on this site."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:168
+# c:\stc/wp-subscription-manager.php:171
 #, php-format
 msgid "<strong>%s</strong> is not a valid e-mail address."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:180
+# c:\stc/wp-subscription-manager.php:183
 msgid "Find Subscriptions"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:183
+# c:\stc/wp-subscription-manager.php:186
 msgid "Enter an e-mail address to view its subscriptions or undo a block."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:191
+# c:\stc/wp-subscription-manager.php:194
 msgid "Search &raquo;"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:220
+# c:\stc/wp-subscription-manager.php:223
 #, php-format
 msgid "<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click \"Remove Selected Subscription(s)\" at the bottom of the list."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:234
+# c:\stc/wp-subscription-manager.php:237
 msgid "Invert Checkbox Selection"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:238
+# c:\stc/wp-subscription-manager.php:241
 msgid "Remove Selected Subscription(s) &raquo;"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:245
+# c:\stc/wp-subscription-manager.php:248
 msgid "Advanced Options"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:248
+# c:\stc/wp-subscription-manager.php:251
 msgid "Block All Notifications"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:255
+# c:\stc/wp-subscription-manager.php:258
 #, php-format
 msgid "If you would like <strong>%s</strong> to be blocked from receiving any notifications from this site, click the button below.  This should be reserved for cases where someone is signing you up for notifications without your consent."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:259
+# c:\stc/wp-subscription-manager.php:262
 msgid "Block Notifications &raquo;"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:265
+# c:\stc/wp-subscription-manager.php:268
 msgid "Change E-mail Address"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:272
+# c:\stc/wp-subscription-manager.php:275
 #, php-format
 msgid "If you would like to change the e-mail address for your subscriptions, enter the new address below.  You will be required to verify this request by clicking a special link sent to your current address (<strong>%s</strong>)."
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:276
+# c:\stc/wp-subscription-manager.php:279
 msgid "New E-mail Address:"
 msgstr ""
 
-# c:\stc/wp-subscription-manager.php:281
+# c:\stc/wp-subscription-manager.php:284
 msgid "Change E-mail Address &raquo;"
 msgstr ""
 

@@ -217,7 +217,7 @@ for( i = 0, n = form.elements.length; i < n; i++ ) {
 </script>		
 			
 	<fieldset class="options">
-		<legend><?php _e('Subscriptions'); ?></legend>
+		<legend><?php _e('Subscriptions', 'subscribe-to-comments'); ?></legend>
 			
 			<p>
 			<?php printf(__('<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click "Remove Selected Subscription(s)" at the bottom of the list.', 'subscribe-to-comments'), $sg_subscribe->email); ?>
