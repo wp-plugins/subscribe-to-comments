@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.0.1
+Version: 2.0.2
 Plugin URI: http://txfx.net/search/subscribe%20to%20comments%202
 Description: Allows readers to recieve notifications of new comments that are posted to an entry
 Author: Mark Jaquith and Jennifer (ScriptyGoddess)
