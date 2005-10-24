@@ -492,7 +492,7 @@ class sg_subscribe
 
 
 	function has_subscribers() {
-		if ( count($this->get_unique_subscribers) > 0 )
+		if ( count($this->get_unique_subscribers()) > 0 )
 			return true;
 		return false;
 	}
