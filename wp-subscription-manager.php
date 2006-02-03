@@ -119,7 +119,7 @@ charset=<?php bloginfo('charset'); ?>" />
 <h2><?php bloginfo('name'); ?> <?php _e('Comment Subscription Manager', 'subscribe-to-comments'); ?></h2>
 
 <?php if (!empty($sg_subscribe->ref)) : ?>
-<?php $sg_subscribe->add_message(sprintf(__('Return to the page you were viewing: %s', 'subscribe-to-comments'), $sg_subscribe->entry_link($sg_subscribe->url_to_postid($sg_subscribe->ref), $sg_subscribe->ref))); ?>
+<?php $sg_subscribe->add_message(sprintf(__('Return to the page you were viewing: %s', 'subscribe-to-comments'), $sg_subscribe->entry_link(url_to_postid($sg_subscribe->ref), $sg_subscribe->ref))); ?>
 <?php $sg_subscribe->show_messages(); ?>
 <?php endif; ?>	
 
