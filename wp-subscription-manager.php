@@ -127,7 +127,7 @@ charset=<?php bloginfo('charset'); ?>" />
 
 <?php if ($sg_subscribe->is_blocked()) { ?>
 
-<?php if ($user_level >= 8) : ?>
+<?php if ( current_user_can('manage_options') ) : ?>
 	
 	<fieldset class="options">
 		<legend><?php _e('Remove Block', 'subscribe-to-comments'); ?></legend>
@@ -177,7 +177,7 @@ charset=<?php bloginfo('charset'); ?>" />
 
 
 
-<?php if ( $user_level >= 8 ) { ?>
+<?php if ( current_user_can('manage_options') ) { ?>
 	
 	<fieldset class="options">
 		<legend><?php _e('Find Subscriptions', 'subscribe-to-comments'); ?></legend>

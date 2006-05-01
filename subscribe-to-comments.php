@@ -40,7 +40,7 @@ function show_subscription_checkbox ($id='0') {
 
 <?php /* ------------------------------------------------------------------- */ ?>
 
-<?php elseif ( $email == 'admin' ) : ?>
+<?php elseif ( $email == 'admin' && current_user_can('manage_options') ) : ?>
 
 <?php /* ------------------------------------------------------------- */ ?>
 <?php /* This is the text that is displayed for the author of the post */ ?>
@@ -535,7 +535,7 @@ class sg_subscribe
 			$this->key_type = 'change_email';
 		elseif ( $this->key == md5($this->email . 'blockrequest' . DB_PASSWORD) )
 			$this->key_type = 'block';
-		elseif ( $user_level >= 8 )
+		elseif ( current_user_can('manage_options') )
 			$this->key_type = 'admin';
 		else
 			return false;
