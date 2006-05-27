@@ -138,7 +138,6 @@ class sg_subscribe_settings
 		if($_SERVER['REQUEST_METHOD'] == 'POST')
 		{
 			update_option('sg_subscribe_settings', $_POST['sg_subscribe_settings']);
-			update_option('sg_subscribe_settings', $_POST['sg_subscribe_settings']);
 		}
 		echo '<h2>Subscribe to Comments Options</h2>';
 		echo '<ul>';
@@ -259,21 +258,24 @@ class sg_subscribe
 	var $not_subscribed_text;
 	var $subscribed_text;
 	var $author_text;
+	var $salt;
+	var $settings;
 
 
 	function sg_subscribe() {
 		global $wpdb;
 		$this->db_upgrade_check();
 
-		$sg_subscribe_settings = get_settings('sg_subscribe_settings');
+		$this->settings = get_settings('sg_subscribe_settings');
 
-		$this->site_email = ( is_email($sg_subscribe_settings['email']) && $sg_subscribe_settings['email'] != 'email@example.com' ) ? $sg_subscribe_settings['email'] : get_bloginfo('admin_email');
-		$this->site_name = ( $sg_subscribe_settings['name'] != 'YOUR NAME' && !empty($sg_subscribe_settings['name']) ) ? stripslashes($sg_subscribe_settings['name']) : get_bloginfo('name');
-		$this->default_subscribed = ($sg_subscribe_settings['default_subscribed']) ? true : false;
+		$this->salt = $this->settings['salt'];
+		$this->site_email = ( is_email($this->settings['email']) && $this->settings['email'] != 'email@example.com' ) ? $this->settings['email'] : get_bloginfo('admin_email');
+		$this->site_name = ( $this->settings['name'] != 'YOUR NAME' && !empty($this->settings['name']) ) ? stripslashes($this->settings['name']) : get_bloginfo('name');
+		$this->default_subscribed = ($this->settings['default_subscribed']) ? true : false;
 
-		$this->not_subscribed_text = stripslashes($sg_subscribe_settings['not_subscribed_text']);
-		$this->subscribed_text = stripslashes($sg_subscribe_settings['subscribed_text']);
-		$this->author_text = stripslashes($sg_subscribe_settings['author_text']);
+		$this->not_subscribed_text = stripslashes($this->settings['not_subscribed_text']);
+		$this->subscribed_text = stripslashes($this->settings['subscribed_text']);
+		$this->author_text = stripslashes($this->settings['author_text']);
 
 		$this->errors = '';
 		$this->post_subscriptions = '';
@@ -282,18 +284,15 @@ class sg_subscribe
 
 
 	function manager_init() {
-		$sg_subscribe_settings = get_settings('sg_subscribe_settings');
 		$this->messages = '';
-		$this->use_wp_style = ($sg_subscribe_settings['use_custom_style'] == 'use_custom_style') ? false : true;
+		$this->use_wp_style = ($this->settings['use_custom_style'] == 'use_custom_style') ? false : true;
 		if( !$this->use_wp_style ) {
-			$this->header = str_replace('[theme_path]', get_template_directory(), stripslashes($sg_subscribe_settings['header']));
-			$this->sidebar = str_replace('[theme_path]', get_template_directory(), stripslashes($sg_subscribe_settings['sidebar']));
-			$this->footer = str_replace('[theme_path]', get_template_directory(), stripslashes($sg_subscribe_settings['footer']));
-			$this->before_manager = stripslashes($sg_subscribe_settings['before_manager']);
-			$this->after_manager = stripslashes($sg_subscribe_settings['after_manager']);
+			$this->header = str_replace('[theme_path]', get_template_directory(), stripslashes($this->settings['header']));
+			$this->sidebar = str_replace('[theme_path]', get_template_directory(), stripslashes($this->settings['sidebar']));
+			$this->footer = str_replace('[theme_path]', get_template_directory(), stripslashes($this->settings['footer']));
+			$this->before_manager = stripslashes($this->settings['before_manager']);
+			$this->after_manager = stripslashes($this->settings['after_manager']);
 		}
-
-		// if ( !$this->standalone && $this->use_wp_style ) add_action('admin_head', create_function('$a', 'global $sg_subscribe; $sg_subscribe->sg_wp_head();'));
 
 		foreach (array('email', 'key', 'ref', 'new_email') as $var) {
 			if ( isset($_REQUEST[$var]) && !empty($_REQUEST[$var]) )
@@ -526,14 +525,22 @@ class sg_subscribe
 	}
 
 
+	function generate_key($data = '') {
+		if ( '' == $data )
+			return false;
+		if ( !$this->settings['salt'] )
+			die('fatal error: corrupted salt');
+		return md5($this->settings['salt'] . $data);
+	}
+
 	function validate_key() {
 		global $user_level;
 
-		if ( $this->key == md5($this->email . DB_PASSWORD) )
+		if ( $this->key == $this->generate_key($this->email) )
 			$this->key_type = 'normal';
-		elseif ( $this->key == md5($this->email . $this->new_email . DB_PASSWORD) )
+		elseif ( $this->key == $this->generate_key($this->email . $this->new_email) )
 			$this->key_type = 'change_email';
-		elseif ( $this->key == md5($this->email . 'blockrequest' . DB_PASSWORD) )
+		elseif ( $this->key == $this->generate_key($this->email . 'blockrequest') )
 			$this->key_type = 'block';
 		elseif ( current_user_can('manage_options') )
 			$this->key_type = 'admin';
@@ -545,7 +552,6 @@ class sg_subscribe
 
 
 	function determine_action() {
-		global $user_level;
 
 		// rather than check it a bunch of times
 		$is_email = is_email($this->email);
@@ -554,7 +560,7 @@ class sg_subscribe
 			$this->action = 'change_email';
 		elseif ( isset($_POST['removesubscrips']) && $is_email )
 			$this->action = 'remove_subscriptions';
-		elseif ( isset($_POST['removeBlock']) && $is_email && $user_level >= 8 )
+		elseif ( isset($_POST['removeBlock']) && $is_email && current_user_can('manage_options') )
 			$this->action = 'remove_block';
 		elseif ( isset($_POST['changeemailrequest']) && $is_email && is_email($this->new_email) )
 			$this->action = 'email_change_request';
@@ -562,7 +568,7 @@ class sg_subscribe
 			$this->action = 'block_request';
 		elseif ( isset($_GET['subscribeid']) )
 			$this->action = 'solo_subscribe';
-		elseif ( $is_email && isset($_GET['blockemailconfirm']) && $this->key == md5($this->email . 'blockrequest' . DB_PASSWORD) )
+		elseif ( $is_email && isset($_GET['blockemailconfirm']) && $this->key == $this->generate_key($this->email . 'blockrequest') )
 			$this->action = 'block';
 		else
 			$this->action = 'none';
@@ -617,7 +623,7 @@ class sg_subscribe
 			foreach($subscriptions as $email) {
 				if (!$this->is_blocked($email->comment_author_email) && $email->comment_author_email != $comment->comment_author_email && is_email($email->comment_author_email)) {
 				        $message_final = str_replace('[email]', $email->comment_author_email, $message);
-				        $message_final = str_replace('[key]', md5($email->comment_author_email . DB_PASSWORD), $message_final);
+				        $message_final = str_replace('[key]', $this->generate_key($email->comment_author_email), $message_final);
 					$this->send_mail($email->comment_author_email, $subject, $message_final);
 						}
 					} // foreach subscription
@@ -633,7 +639,7 @@ class sg_subscribe
 		$subject = __('E-mail change confirmation', 'subscribe-to-comments');
 		$message = sprintf(__("You are receiving this message to confirm a change of e-mail address for your subscriptions at \"%s\"\n\n", 'subscribe-to-comments'), get_bloginfo('blogname'));
 		$message .= sprintf(__("To change your e-mail address to %s, click this link:\n\n", 'subscribe-to-comments'), $this->new_email);
-		$message .= get_bloginfo('wpurl') . "/wp-subscription-manager.php?email=" . $this->email . "&new_email=" . $this->new_email . "&key=" . md5($this->email . $this->new_email . DB_PASSWORD) . ".\n\n";
+		$message .= get_bloginfo('wpurl') . "/wp-subscription-manager.php?email=" . $this->email . "&new_email=" . $this->new_email . "&key=" . $this->generate_key($this->email . $this->new_email) . ".\n\n";
 		$message .= __('If you did not request this action, please disregard this message.', 'subscribe-to-comments');
 		return $this->send_mail($this->email, $subject, $message);
 	}
@@ -644,7 +650,7 @@ class sg_subscribe
 		$subject = __('E-mail block confirmation', 'subscribe-to-comments');
 		$message = sprintf(__("You are receiving this message to confirm that you no longer wish to receive e-mail comment notifications from \"%s\"\n\n", 'subscribe-to-comments'), get_bloginfo('name'));
 		$message .= __("To cancel all future notifications for this address, click this link:\n\n", 'subscribe-to-comments');
-		$message .= get_bloginfo('wpurl') . "/wp-subscription-manager.php?email=" . $email . "&key=" . md5($email . 'blockrequest' . DB_PASSWORD) . "&blockemailconfirm=true" . ".\n\n";
+		$message .= get_bloginfo('wpurl') . "/wp-subscription-manager.php?email=" . $email . "&key=" . $this->generate_key($email . 'blockrequest') . "&blockemailconfirm=true" . ".\n\n";
 		$message .= __("If you did not request this action, please disregard this message.", 'subscribe-to-comments');
 		return $this->send_mail($email, $subject, $message);
 	}
@@ -699,6 +705,12 @@ class sg_subscribe
 		// add the options
 		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'default_subscribed' => '', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments')));
 
+		$settings = get_option('sg_subscribe_settings');
+		if ( !$settings['salt'] ) {
+			$settings['salt'] = md5(uniqid(rand(), true)); // random MD5 hash
+			update_option('sg_subscribe_settings', $settings);
+		}
+
 		$column_name = 'comment_subscribe';
 		foreach ($wpdb->get_col("DESC $wpdb->comments", 0) as $column )
 			if ($column == $column_name) return true;
@@ -737,7 +749,7 @@ class sg_subscribe
 		$link  = get_bloginfo('wpurl') . '/wp-subscription-manager.php?';
 		if ($html) $amp = 'amp;';
 		if($email != 'admin')
-			$link .= 'email=' . $email . '&' . $amp . 'key=' . md5($email . DB_PASSWORD);
+			$link .= 'email=' . $email . '&' . $amp . 'key=' . $this->generate_key($email);
 		$link .= '&' . $amp . 'ref=http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
 		if ($echo)

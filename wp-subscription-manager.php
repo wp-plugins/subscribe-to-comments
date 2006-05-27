@@ -35,7 +35,7 @@ switch ($sg_subscribe->action) :
 		// change info to the new email
 		$sg_subscribe->email = $sg_subscribe->new_email;
 		unset($sg_subscribe->new_email);
-		$sg_subscribe->key = md5($sg_subscribe->email . DB_PASSWORD);
+		$sg_subscribe->key = $sg_subscribe->generate_key($sg_subscribe->email);
 		$sg_subscribe->validate_key();
 		}
 		break;
@@ -75,7 +75,7 @@ switch ($sg_subscribe->action) :
 			$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> has been added to the "do not mail" list. You will no longer receive any notifications from this site. If this was done in error, please contact the <a href="mailto:%s">site administrator</a> to remove this block.', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->site_email));
 		else
 			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has already been blocked!', 'subscribe-to-comments'), $sg_subscribe->email), 'manager');
-		$sg_subscribe->key = md5($sg_subscribe->email . DB_PASSWORD);
+		$sg_subscribe->key = $sg_subscribe->generate_key($sg_subscribe->email);
 		$sg_subscribe->validate_key();
 		break;
 		
