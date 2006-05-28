@@ -525,17 +525,15 @@ class sg_subscribe
 	}
 
 
-	function generate_key($data = '') {
+	function generate_key($data='') {
 		if ( '' == $data )
 			return false;
 		if ( !$this->settings['salt'] )
 			die('fatal error: corrupted salt');
-		return md5($this->settings['salt'] . $data);
+		return md5(md5($this->settings['salt'] . $data));
 	}
 
 	function validate_key() {
-		global $user_level;
-
 		if ( $this->key == $this->generate_key($this->email) )
 			$this->key_type = 'normal';
 		elseif ( $this->key == $this->generate_key($this->email . $this->new_email) )
@@ -707,7 +705,7 @@ class sg_subscribe
 
 		$settings = get_option('sg_subscribe_settings');
 		if ( !$settings['salt'] ) {
-			$settings['salt'] = md5(uniqid(rand(), true)); // random MD5 hash
+			$settings['salt'] = md5(md5(uniqid(rand() . rand() . rand() . rand() . rand(), true))); // random MD5 hash
 			update_option('sg_subscribe_settings', $settings);
 		}
 
@@ -746,16 +744,18 @@ class sg_subscribe
 
 
 	function manage_link($email='', $html=true, $echo=true) {
-		$link  = get_bloginfo('wpurl') . '/wp-subscription-manager.php?';
-		if ($html) $amp = 'amp;';
-		if($email != 'admin')
-			$link .= 'email=' . $email . '&' . $amp . 'key=' . $this->generate_key($email);
-		$link .= '&' . $amp . 'ref=http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-
-		if ($echo)
-			echo $link;
-		else
+		$link  = get_bloginfo('wpurl') . '/wp-subscription-manager.php';
+		// if ($html) $amp = 'amp;';
+		if($email != 'admin') {
+			$link = add_query_arg('email', $email, $link);
+			$link = add_query_arg('key', $this->generate_key($email), $link);
+		}
+		$link = add_query_arg('ref', urlencode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']), $link);
+		if ( $html )
+			$link = htmlentities($link);
+		if ( !$echo )
 			return $link;
+		echo $link;
 	}
 
 
