@@ -35,7 +35,7 @@ switch ($sg_subscribe->action) :
 		// change info to the new email
 		$sg_subscribe->email = $sg_subscribe->new_email;
 		unset($sg_subscribe->new_email);
-		$sg_subscribe->key = md5($sg_subscribe->email . DB_PASSWORD);
+		$sg_subscribe->key = $sg_subscribe->generate_key($sg_subscribe->email);
 		$sg_subscribe->validate_key();
 		}
 		break;
@@ -75,7 +75,7 @@ switch ($sg_subscribe->action) :
 			$sg_subscribe->add_message(sprintf(__('<strong>%s</strong> has been added to the "do not mail" list. You will no longer receive any notifications from this site. If this was done in error, please contact the <a href="mailto:%s">site administrator</a> to remove this block.', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->site_email));
 		else
 			$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has already been blocked!', 'subscribe-to-comments'), $sg_subscribe->email), 'manager');
-		$sg_subscribe->key = md5($sg_subscribe->email . DB_PASSWORD);
+		$sg_subscribe->key = $sg_subscribe->generate_key($sg_subscribe->email);
 		$sg_subscribe->validate_key();
 		break;
 		
@@ -119,7 +119,7 @@ charset=<?php bloginfo('charset'); ?>" />
 <h2><?php bloginfo('name'); ?> <?php _e('Comment Subscription Manager', 'subscribe-to-comments'); ?></h2>
 
 <?php if (!empty($sg_subscribe->ref)) : ?>
-<?php $sg_subscribe->add_message(sprintf(__('Return to the page you were viewing: %s', 'subscribe-to-comments'), $sg_subscribe->entry_link($sg_subscribe->url_to_postid($sg_subscribe->ref), $sg_subscribe->ref))); ?>
+<?php $sg_subscribe->add_message(sprintf(__('Return to the page you were viewing: %s', 'subscribe-to-comments'), $sg_subscribe->entry_link(url_to_postid($sg_subscribe->ref), $sg_subscribe->ref))); ?>
 <?php $sg_subscribe->show_messages(); ?>
 <?php endif; ?>	
 
@@ -127,7 +127,7 @@ charset=<?php bloginfo('charset'); ?>" />
 
 <?php if ($sg_subscribe->is_blocked()) { ?>
 
-<?php if ($user_level >= 8) : ?>
+<?php if ( current_user_can('manage_options') ) : ?>
 	
 	<fieldset class="options">
 		<legend><?php _e('Remove Block', 'subscribe-to-comments'); ?></legend>
@@ -177,7 +177,7 @@ charset=<?php bloginfo('charset'); ?>" />
 
 
 
-<?php if ( $user_level >= 8 ) { ?>
+<?php if ( current_user_can('manage_options') ) { ?>
 	
 	<fieldset class="options">
 		<legend><?php _e('Find Subscriptions', 'subscribe-to-comments'); ?></legend>
