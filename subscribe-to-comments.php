@@ -292,6 +292,8 @@ class sg_subscribe {
 			if ( isset($_REQUEST[$var]) && !empty($_REQUEST[$var]) )
 				$this->{$var} = trim($_REQUEST[$var]);
 		}
+		if ( !$this->key )
+			$this->key = 'unset';
 	}
 
 
