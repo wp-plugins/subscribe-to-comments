@@ -24,3 +24,7 @@ Subscribe to Comments 2 is a WordPress plugin that allows commenters on an entry
 = I'd like the subscription checkbox to be checked by default.  Can I do that? =
 
 By default, the "subscribe" checkbox is unchecked, but you can change that in the options (i.e. so that it is checked by default).
+
+= My subscription checkbox shows up in a strange place.  How do I fix it? =
+
+Try unchecking the CSS "clear" option.
