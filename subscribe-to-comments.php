@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.0.5
+Version: 2.0.6
 Plugin URI: http://txfx.net/code/wordpress/subscribe-to-comments/
 Description: Allows readers to recieve notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
 Author: Mark Jaquith
@@ -33,7 +33,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
 <?php /* ------------------------------------------------------------------- */ ?>
 
-	<p style="clear: both;" class="subscribe-to-comments">
+	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?> class="subscribe-to-comments">
         <input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ($sg_subscribe->default_subscribed) echo 'checked="checked" '; ?>/>
         <label for="subscribe"><?php echo $sg_subscribe->not_subscribed_text; ?></label>
 	</p>
@@ -46,7 +46,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* This is the text that is displayed for the author of the post */ ?>
 <?php /* ------------------------------------------------------------- */ ?>
 
-	<p style="clear: both;" class="subscribe-to-comments">
+	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?> class="subscribe-to-comments">
 	<?php echo str_replace('[manager_link]', $sg_subscribe->manage_link($email, true, false), $sg_subscribe->author_text); ?>
 	</p>
 
@@ -56,7 +56,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* This is the text that is displayed for users who ARE subscribed */ ?>
 <?php /* --------------------------------------------------------------- */ ?>
 
-	<p style="clear: both;" class="subscribe-to-comments">
+	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?> class="subscribe-to-comments">
 	<?php echo str_replace('[manager_link]', $sg_subscribe->manage_link($email, true, false), $sg_subscribe->subscribed_text); ?>
 	</p>
 
@@ -145,6 +145,7 @@ class sg_subscribe_settings
 		echo '<li><label for="name">' . __('"From" name for notifications:', 'subscribe-to-comments') . ' <input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . sg_subscribe_settings::form_setting('name') . '" /></label></li>';
 		echo '<li><label for="email">' . __('"From" e-mail addresss for notifications:', 'subscribe-to-comments') . ' <input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . sg_subscribe_settings::form_setting('email') . '" /></label></li>';
 		echo '<li><label for="default_subscribed"><input type="checkbox" id="default_subscribed" name="sg_subscribe_settings[default_subscribed]" value="default_subscribed"' . sg_subscribe_settings::checkflag('default_subscribed') . ' /> ' . __('"Subscribe" box should be checked by default', 'subscribe-to-comments') . '</label></li>';
+		echo '<li><label for="clear_both"><input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . sg_subscribe_settings::checkflag('clear_both') . ' /> ' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label></li>';
 		echo '</ul>';
 
 		echo '<fieldset><legend>' . __('Comment Form Text', 'subscribe-to-comments') . '</legend>';
@@ -240,6 +241,7 @@ class sg_subscribe {
 	var $header;
 	var $sidebar;
 	var $footer;
+	var $clear_both;
 	var $before_manager;
 	var $after_manager;
 	var $email;
@@ -618,7 +620,7 @@ class sg_subscribe {
 			if ( is_array($subscriptions) ) {
 				foreach ( $subscriptions as $email ) {
 					if ( !$this->is_blocked($email->comment_author_email) && $email->comment_author_email != $comment->comment_author_email && is_email($email->comment_author_email) ) {
-					        $message_final = str_replace('[email]', $email->comment_author_email, $message);
+					        $message_final = str_replace('[email]', urlencode($email->comment_author_email), $message);
 					        $message_final = str_replace('[key]', $this->generate_key($email->comment_author_email), $message_final);
 						$this->send_mail($email->comment_author_email, $subject, $message_final);
 					}
@@ -706,10 +708,19 @@ class sg_subscribe {
 		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'default_subscribed' => '', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments')));
 
 		$settings = get_option('sg_subscribe_settings');
+
 		if ( !$settings['salt'] ) {
 			$settings['salt'] = md5(md5(uniqid(rand() . rand() . rand() . rand() . rand(), true))); // random MD5 hash
-			update_option('sg_subscribe_settings', $settings);
+			$update = true;
 		}
+
+		if ( !$settings['clear_both'] ) {
+			$settings['clear_both'] = 'clear_both';
+			$update = true;
+		}
+
+		if ( $update )
+			update_option('sg_subscribe_settings', $settings);
 
 		$column_name = 'comment_subscribe';
 		foreach ($wpdb->get_col("DESC $wpdb->comments", 0) as $column )
@@ -750,7 +761,7 @@ class sg_subscribe {
 	function manage_link($email='', $html=true, $echo=true) {
 		$link  = get_bloginfo('wpurl') . '/wp-subscription-manager.php';
 		if ( $email != 'admin' ) {
-			$link = add_query_arg('email', $email, $link);
+			$link = add_query_arg('email', urlencode($email), $link);
 			$link = add_query_arg('key', $this->generate_key($email), $link);
 		}
 		$link = add_query_arg('ref', urlencode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']), $link);
