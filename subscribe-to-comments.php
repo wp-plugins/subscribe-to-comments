@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.0.6
+Version: 2.0.7
 Plugin URI: http://txfx.net/code/wordpress/subscribe-to-comments/
 Description: Allows readers to recieve notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
 Author: Mark Jaquith
@@ -33,7 +33,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
 <?php /* ------------------------------------------------------------------- */ ?>
 
-	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?> class="subscribe-to-comments">
+	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
         <input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ($sg_subscribe->default_subscribed) echo 'checked="checked" '; ?>/>
         <label for="subscribe"><?php echo $sg_subscribe->not_subscribed_text; ?></label>
 	</p>
@@ -46,7 +46,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* This is the text that is displayed for the author of the post */ ?>
 <?php /* ------------------------------------------------------------- */ ?>
 
-	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?> class="subscribe-to-comments">
+	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
 	<?php echo str_replace('[manager_link]', $sg_subscribe->manage_link($email, true, false), $sg_subscribe->author_text); ?>
 	</p>
 
@@ -56,7 +56,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* This is the text that is displayed for users who ARE subscribed */ ?>
 <?php /* --------------------------------------------------------------- */ ?>
 
-	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?> class="subscribe-to-comments">
+	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
 	<?php echo str_replace('[manager_link]', $sg_subscribe->manage_link($email, true, false), $sg_subscribe->subscribed_text); ?>
 	</p>
 
@@ -272,6 +272,7 @@ class sg_subscribe {
 		$this->not_subscribed_text = stripslashes($this->settings['not_subscribed_text']);
 		$this->subscribed_text = stripslashes($this->settings['subscribed_text']);
 		$this->author_text = stripslashes($this->settings['author_text']);
+		$this->clear_both = $this->settings['clear_both'];
 
 		$this->errors = '';
 		$this->post_subscriptions = '';
