@@ -87,10 +87,10 @@ if ( !$sg_subscribe->current_viewer_subscription_status() ) :
 <?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
 <?php /* ------------------------------------------------------------------- */ ?>
 
-	<form action="http://<?php echo $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] ?>" method="post">
+	<form action="http://<?php echo $_SERVER['HTTP_HOST'] . wp_specialchars($_SERVER['REQUEST_URI']); ?>" method="post">
 	<input type="hidden" name="solo-comment-subscribe" value="solo-comment-subscribe" />
 	<input type="hidden" name="postid" value="<?php echo $id; ?>" />
-	<input type="hidden" name="ref" value="<?php echo 'http://' . $_SERVER['HTTP_HOST'] . wp_specialchars($_SERVER['REQUEST_URI']); ?>" />
+	<input type="hidden" name="ref" value="<?php echo urlencode('http://' . $_SERVER['HTTP_HOST'] . wp_specialchars($_SERVER['REQUEST_URI'])); ?>" />
 
 	<p class="solo-subscribe-to-comments">
 	<?php _e('Subscribe without commenting', 'subscribe-to-comments'); ?>
@@ -764,7 +764,7 @@ class sg_subscribe {
 			$link = add_query_arg('email', urlencode(urlencode($email)), $link);
 			$link = add_query_arg('key', $this->generate_key($email), $link);
 		}
-		$link = add_query_arg('ref', urlencode('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']), $link);
+		$link = add_query_arg('ref', urlencode('http://' . $_SERVER['HTTP_HOST'] . wp_specialchars($_SERVER['REQUEST_URI'])), $link);
 		$link = str_replace('+', '%2B', $link);
 		if ( $html )
 			$link = htmlentities($link);
