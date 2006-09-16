@@ -291,6 +291,11 @@ class sg_subscribe {
 			$this->after_manager = stripslashes($this->settings['after_manager']);
 		}
 
+		// version 2.0.8 -- allow plugin file to be renamed or placed in a subdirectory
+		if ( 'edit.php?page=subscribe-to-comments.php' == $this->form_action )
+			$this->form_action = 'edit.php?page=' . STC_PLUGIN_BASENAME;
+
+
 		foreach (array('email', 'key', 'ref', 'new_email') as $var) {
 			if ( isset($_REQUEST[$var]) && !empty($_REQUEST[$var]) )
 				$this->{$var} = wp_specialchars(trim($_REQUEST[$var]));
@@ -829,4 +834,7 @@ add_action('init', create_function('$a','global $sg_subscribe; if ( $_POST[\'sol
 	$sg_subscribe->solo_subscribe($_POST[\'email\'], $_POST[\'postid\']);
 }')
 );
+
+define('STC_PLUGIN_BASENAME', plugin_basename(__FILE__));
+
 ?>
