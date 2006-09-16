@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.0.8
+Version: 2.1
 Plugin URI: http://txfx.net/code/wordpress/subscribe-to-comments/
 Description: Allows readers to recieve notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
 Author: Mark Jaquith
