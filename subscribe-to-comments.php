@@ -8,16 +8,6 @@ Author: Mark Jaquith
 Author URI: http://txfx.net/
 */
 
-
-
-// No touching
-if ( defined('ABSPATH') ) {
-// No touching
-
-
-
-
-
 /* ================= */
 /* Display Functions */
 /* ================= */
@@ -626,7 +616,7 @@ class sg_subscribe {
 			$message .= get_permalink($comment->comment_post_ID) . "#comments\n\n";
 			//add link to manage comment notifications
 			$message .= __("To manage your subscriptions or to block all notifications from this site, click the link below:\n", 'subscribe-to-comments');
-			$message .= get_settings('siteurl') . '/wp-content/plugins/' . STC_PLUGIN_BASENAME . '?email=[email]&key=[key]';
+			$message .= get_settings('home') . '/?wp-subscription-manager=1&email=[email]&key=[key]';
 
 			$subject = sprintf(__('New Comment On: %s', 'subscribe-to-comments'), stripslashes($post->post_title));
 
@@ -652,7 +642,7 @@ class sg_subscribe {
 		$subject = __('E-mail change confirmation', 'subscribe-to-comments');
 		$message = sprintf(__("You are receiving this message to confirm a change of e-mail address for your subscriptions at \"%s\"\n\n", 'subscribe-to-comments'), get_bloginfo('blogname'));
 		$message .= sprintf(__("To change your e-mail address to %s, click this link:\n\n", 'subscribe-to-comments'), $this->new_email);
-		$message .= get_bloginfo('wpurl') . "/wp-content/plugins/" . STC_PLUGIN_BASENAME . "?email=" . urlencode($this->email) . "&new_email=" . urlencode($this->new_email) . "&key=" . $this->generate_key($this->email . $this->new_email) . ".\n\n";
+		$message .= get_option('home') . "/?wp-subscription-manager=1&email=" . urlencode($this->email) . "&new_email=" . urlencode($this->new_email) . "&key=" . $this->generate_key($this->email . $this->new_email) . ".\n\n";
 		$message .= __('If you did not request this action, please disregard this message.', 'subscribe-to-comments');
 		return $this->send_mail($this->email, $subject, $message);
 	}
@@ -664,7 +654,7 @@ class sg_subscribe {
 		$subject = __('E-mail block confirmation', 'subscribe-to-comments');
 		$message = sprintf(__("You are receiving this message to confirm that you no longer wish to receive e-mail comment notifications from \"%s\"\n\n", 'subscribe-to-comments'), get_bloginfo('name'));
 		$message .= __("To cancel all future notifications for this address, click this link:\n\n", 'subscribe-to-comments');
-		$message .= get_bloginfo('wpurl') . "/wp-content/plugins/" . STC_PLUGIN_BASENAME . "?email=" . urlencode($email) . "&key=" . $this->generate_key($email . 'blockrequest') . "&blockemailconfirm=true" . ".\n\n";
+		$message .= get_option('home') . "/?wp-subscription-manager=1&email=" . urlencode($email) . "&key=" . $this->generate_key($email . 'blockrequest') . "&blockemailconfirm=true" . ".\n\n";
 		$message .= __("If you did not request this action, please disregard this message.", 'subscribe-to-comments');
 		return $this->send_mail($email, $subject, $message);
 	}
@@ -772,7 +762,7 @@ class sg_subscribe {
 
 
 	function manage_link($email='', $html=true, $echo=true) {
-		$link  = get_bloginfo('wpurl') . "/wp-content/plugins/" . STC_PLUGIN_BASENAME;
+		$link  = get_option('home') . '/?wp-subscription-manager=1';
 		if ( $email != 'admin' ) {
 			$link = add_query_arg('email', urlencode(urlencode($email)), $link);
 			$link = add_query_arg('key', $this->generate_key($email), $link);
@@ -823,7 +813,7 @@ function sg_subscribe_start() {
 }
 
 function sg_subscribe_admin() {
-	include (ABSPATH . "/wp-content/plugins/" . STC_PLUGIN_BASENAME);
+	wp_subscription_manager();
 }
 
 
@@ -858,39 +848,29 @@ define('STC_PLUGIN_BASENAME', plugin_basename(__FILE__));
 /* ================================================================================================ */
 /* ================================================================================================ */
 /* ================================================================================================ */
-
-} else { // Subscription Manager
-
+if ( isset($_REQUEST['wp-subscription-manager']) )
+	add_action('template_redirect', 'wp_subscription_manager_standalone');
 /* ================================================================================================ */
 /* ================================================================================================ */
 /* ================================================================================================ */
 /* ================================================================================================ */
 
+function wp_subscription_manager_standalone() {
+	wp_subscription_manager(true);
+}
 
-
-
+function wp_subscription_manager($standalone = false) {
 
 	// need to declare these global;
 	global $wpdb, $user_level, $sg_subscribe;
 
-	if (!function_exists('sg_subscribe_start')) {
-		if ( file_exists('../../wp-config.php'))
-			require('../../wp-config.php');
-		elseif ( file_exists('../../../wp-config.php'))
-			require('../../../wp-config.php');
+	sg_subscribe_start();
 
-		if ( !defined('ABSPATH') )
-			die(__('You must install the "Subscribe to Comments" plugin in the <code>/plugins/</code> directory', 'subscribe-to-comments'));
-
-		if (!function_exists('sg_subscribe_start'))
-			die(__('You must activate the "Subscribe to Comments" plugin in the WordPress admin panel', 'subscribe-to-comments'));
-
-		sg_subscribe_start();
-		$sg_subscribe->form_action = get_bloginfo('wpurl') . "/wp-content/plugins/" . STC_PLUGIN_BASENAME;
-		$sg_subscribe->standalone = true;
+	if ( $standalone ) {
+	$sg_subscribe->form_action = get_option('home') . '/?wp-subscription-manager=1';
+	$sg_subscribe->standalone = true;
 		ob_start(create_function('$a', 'return str_replace("<title>", "<title> " . __("Subscription Manager", "subscribe-to-comments") . " &raquo; ", $a);'));
 	} else {
-		sg_subscribe_start();
 		$sg_subscribe->form_action = 'edit.php?page=subscribe-to-comments.php';
 		$sg_subscribe->standalone = false;
 	}
@@ -1183,5 +1163,5 @@ define('STC_PLUGIN_BASENAME', plugin_basename(__FILE__));
 	<?php endif; ?>
 
 
-
+<?php die(); ?>
 <?php } ?>
