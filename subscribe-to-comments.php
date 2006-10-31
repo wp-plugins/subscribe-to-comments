@@ -874,10 +874,16 @@ define('STC_PLUGIN_BASENAME', plugin_basename(__FILE__));
 	global $wpdb, $user_level, $sg_subscribe;
 
 	if (!function_exists('sg_subscribe_start')) {
-		require('./wp-config.php');
+		if ( file_exists('../../wp-config.php'))
+			require('../../wp-config.php');
+		elseif ( file_exists('../../../wp-config.php'))
+			require('../../../wp-config.php');
+
+		if ( !defined('ABSPATH') )
+			die(__('You must install the "Subscribe to Comments" plugin in the <code>/plugins/</code> directory', 'subscribe-to-comments'));
 
 		if (!function_exists('sg_subscribe_start'))
-			die (__('You must activate the "Subscribe to Comments" plugin in the WordPress admin panel', 'subscribe-to-comments'));
+			die(__('You must activate the "Subscribe to Comments" plugin in the WordPress admin panel', 'subscribe-to-comments'));
 
 		sg_subscribe_start();
 		$sg_subscribe->form_action = get_bloginfo('wpurl') . "/wp-content/plugins/" . STC_PLUGIN_BASENAME;
