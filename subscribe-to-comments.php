@@ -862,7 +862,7 @@ function wp_subscription_manager_standalone() {
 function wp_subscription_manager($standalone = false) {
 
 	// need to declare these global;
-	global $wpdb, $user_level, $sg_subscribe;
+	global $wpdb, $sg_subscribe;
 
 	sg_subscribe_start();
 
