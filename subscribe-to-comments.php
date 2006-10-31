@@ -8,18 +8,7 @@ Author: Mark Jaquith
 Author URI: http://txfx.net/
 */
 
-/* ================= */
-/* Display Functions */
-/* ================= */
-
-/* -------------------------
-What follows are the functions that display things in your comments form.
-Feel free to customize them to your needs
-------------------------- */
-
-/* -------------------------
-This is the code that is inserted into your comment form.  You may modify it, if you wish.
-------------------------- */
+/* This is the code that is inserted into the comment form */
 function show_subscription_checkbox ($id='0') {
 	global $sg_subscribe;
 	sg_subscribe_start();
@@ -73,7 +62,7 @@ return $id;
 /* Place this somewhere within "the loop", but NOT within another form  */
 /* This is NOT inserted automaticallly... you must place it yourself    */
 /* -------------------------------------------------------------------- */
-function show_manual_subscription_form () {
+function show_manual_subscription_form() {
 	global $id, $sg_subscribe, $user_email;
 	sg_subscribe_start();
 	$sg_subscribe->show_errors('solo_subscribe', '<div class="solo-subscribe-errors">', '</div>', __('<strong>Error: </strong>', 'subscribe-to-comments'), '<br />');
@@ -124,6 +113,14 @@ return false;
 
 
 
+
+
+
+
+
+
+
+
 /* ============================= */
 /* DO NOT MODIFY BELOW THIS LINE */
 /* ============================= */
@@ -159,12 +156,6 @@ class sg_subscribe_settings
 		echo '<li><label for="author_text">' . __('Entry Author', 'subscribe-to-comments') . '</label><br /><textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="author_text" name="sg_subscribe_settings[author_text]">' . sg_subscribe_settings::textarea_setting('author_text') . '</textarea></li>';
 
 		echo '</ul></fieldset>';
-
-
-
-
-
-
 
 
 		echo '<fieldset>';
@@ -812,9 +803,6 @@ function sg_subscribe_start() {
 	}
 }
 
-function sg_subscribe_admin() {
-	wp_subscription_manager();
-}
 
 
 // This will be overridden if the user manually places the function
@@ -844,22 +832,16 @@ define('STC_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
 
 
-/* ================================================================================================ */
-/* ================================================================================================ */
-/* ================================================================================================ */
-/* ================================================================================================ */
-if ( isset($_REQUEST['wp-subscription-manager']) )
-	add_action('template_redirect', 'wp_subscription_manager_standalone');
-/* ================================================================================================ */
-/* ================================================================================================ */
-/* ================================================================================================ */
-/* ================================================================================================ */
 
-function wp_subscription_manager_standalone() {
-	wp_subscription_manager(true);
+if ( isset($_REQUEST['wp-subscription-manager']) )
+	add_action('template_redirect', 'sg_subscribe_admin_standalone');
+
+
+function sg_subscribe_admin_standalone() {
+	sg_subscribe_admin(true);
 }
 
-function wp_subscription_manager($standalone = false) {
+function sg_subscribe_admin($standalone = false) {
 
 	// need to declare these global;
 	global $wpdb, $sg_subscribe;
@@ -978,7 +960,7 @@ function wp_subscription_manager($standalone = false) {
 	<?php if (!empty($sg_subscribe->ref)) : ?>
 	<?php $sg_subscribe->add_message(sprintf(__('Return to the page you were viewing: %s', 'subscribe-to-comments'), $sg_subscribe->entry_link(url_to_postid($sg_subscribe->ref), $sg_subscribe->ref))); ?>
 	<?php $sg_subscribe->show_messages(); ?>
-	<?php endif; ?>	
+	<?php endif; ?>
 
 
 
@@ -1026,7 +1008,7 @@ function wp_subscription_manager($standalone = false) {
 			<?php $sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not subscribed to any posts on this site.', 'subscribe-to-comments'), $sg_subscribe->email)); ?>
 		<?php else : ?>
 			<?php $sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not a valid e-mail address.', 'subscribe-to-comments'), $sg_subscribe->email)); ?>
-		<?php endif; ?>	
+		<?php endif; ?>
 	<?php } ?>
 
 	<?php $sg_subscribe->show_errors(); ?>
@@ -1050,8 +1032,46 @@ function wp_subscription_manager($standalone = false) {
 			<input name="email" type="text" id="email" size="40" />
 			<input type="submit" value="<?php _e('Search &raquo;', 'subscribe-to-comments'); ?>" />
 			</p>
-			</form>	
+			</form>
 		</fieldset>
+
+<?php if ( !$_REQUEST['email'] ) : ?>
+		<fieldset class="options">
+			<legend><?php _e('Subscribers', 'subscribe-to-comments'); ?></legend>
+
+			<?php
+				$all_ct_subscriptions = $wpdb->get_results("SELECT distinct LCASE(comment_author_email) as email, count(distinct comment_post_ID) as ccount FROM $wpdb->comments WHERE comment_subscribe='Y' AND comment_approved = '1' GROUP BY email ORDER BY ccount DESC");
+			// var_dump($all_ct_subscriptions);
+
+			$all_pm_subscriptions = $wpdb->get_results("SELECT distinct LCASE(meta_value) as email, count(post_id) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY email ORDER BY ccount DESC");
+
+			$all_subscriptions = array();
+			foreach ( array('all_ct_subscriptions', 'all_pm_subscriptions') as $each ) {
+				foreach ( (array) $$each as $sub ) {
+					if ( !isset($all_subscriptions[$sub->email]) )
+						$all_subscriptions[$sub->email] = (int) $sub->ccount;
+					else
+						$all_subscriptions[$sub->email] += (int) $sub->ccount;
+				}
+			}
+
+			//var_dump($all_pm_subscriptions);
+
+			// var_dump($all_subscriptions);
+			if ( $all_subscriptions ) {
+				echo "<ul>\n";
+				foreach ( $all_subscriptions as $email => $ccount ) {
+					$enc_email = urlencode($email);
+					echo "<li>($ccount) <a href='{$sg_subscribe->form_action}&email=$enc_email'>$email</a></li>\n";
+				}
+				echo "</ul>\n";
+			}
+			
+?>
+
+		</fieldset>
+
+<?php endif; ?>
 
 	<?php } ?>
 
@@ -1071,7 +1091,7 @@ function wp_subscription_manager($standalone = false) {
 	        }
 	    }
 	// -->
-	</script>		
+	</script>
 
 		<fieldset class="options">
 			<legend><?php _e('Subscriptions', 'subscribe-to-comments'); ?></legend>
@@ -1118,7 +1138,7 @@ function wp_subscription_manager($standalone = false) {
 				<p class="submit">
 				<input type="submit" name="submit" value="<?php _e('Block Notifications &raquo;', 'subscribe-to-comments'); ?>" />
 				</p>
-				</form>			
+				</form>
 		</fieldset>
 
 		<fieldset class="options">
@@ -1154,7 +1174,7 @@ function wp_subscription_manager($standalone = false) {
 	if ( !empty($sg_subscribe->sidebar) )
 		include_once($sg_subscribe->sidebar);
 	if ( !empty($sg_subscribe->footer) )
-		include_once($sg_subscribe->footer);	
+		include_once($sg_subscribe->footer);
 	?>
 	<?php else : ?>
 	</body>
@@ -1163,5 +1183,5 @@ function wp_subscription_manager($standalone = false) {
 	<?php endif; ?>
 
 
-<?php die(); ?>
+<?php die(); // stop WP from loading ?>
 <?php } ?>
