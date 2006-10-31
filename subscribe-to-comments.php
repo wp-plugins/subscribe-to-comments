@@ -779,6 +779,15 @@ class sg_subscribe {
 	}
 
 
+	function on_edit($cid) {
+		global $wpdb;
+		$comment = &get_comment($cid);
+		if ( !is_email($comment->comment_author_email) && $comment->comment_subscribe == 'Y' )
+			$wpdb->query("UPDATE $wpdb->comments SET comment_subscribe = 'N' WHERE comment_ID = '$comment->comment_ID' LIMIT 1");
+		return $cid;
+	}
+
+
 	function add_admin_menu() {
 		add_management_page(__('Comment Subscription Manager', 'subscribe-to-comments'), __('Subscriptions', 'subscribe-to-comments'), 8, __FILE__, 'sg_subscribe_admin');
 
@@ -790,10 +799,6 @@ class sg_subscribe {
 
 
 } // class sg_subscribe
-
-
-
-
 
 
 
@@ -825,7 +830,7 @@ add_action('comment_post', create_function('$a', 'global $sg_subscribe; sg_subsc
 add_action('wp_set_comment_status', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); return $sg_subscribe->send_notifications($a);'));
 add_action('admin_menu', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->add_admin_menu();'));
 add_action('admin_head', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->sg_wp_head();'));
-
+add_action('comment_edit', array('sg_subscribe', 'on_edit'));
 
 
 // detect "subscribe without commenting" attempts
