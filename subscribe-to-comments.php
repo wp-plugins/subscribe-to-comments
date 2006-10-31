@@ -828,7 +828,7 @@ add_action('comment_post', create_function('$a', 'global $sg_subscribe; sg_subsc
 add_action('wp_set_comment_status', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); return $sg_subscribe->send_notifications($a);'));
 add_action('admin_menu', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->add_admin_menu();'));
 add_action('admin_head', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->sg_wp_head();'));
-add_action('comment_edit', array('sg_subscribe', 'on_edit'));
+add_action('edit_comment', array('sg_subscribe', 'on_edit'));
 
 
 // detect "subscribe without commenting" attempts
