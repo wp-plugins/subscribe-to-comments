@@ -1011,6 +1011,9 @@ function sg_subscribe_admin($standalone = false) {
 
 
 	<?php if ( current_user_can('manage_options') ) { ?>
+		<?php if ( $_REQUEST['email'] ) : ?>
+			<p><a href="<?php echo $sg_subscribe->form_action; ?>">&laquo; Back</a></p>
+		<?php endif; ?>
 
 		<fieldset class="options">
 			<legend><?php _e('Find Subscriptions', 'subscribe-to-comments'); ?></legend>
@@ -1031,7 +1034,7 @@ function sg_subscribe_admin($standalone = false) {
 
 <?php if ( !$_REQUEST['email'] ) : ?>
 		<fieldset class="options">
-			<legend><?php _e('Subscribers', 'subscribe-to-comments'); ?></legend>
+			<legend><?php _e('Subscriber List', 'subscribe-to-comments'); ?></legend>
 
 <?php
 			$all_ct_subscriptions = $wpdb->get_results("SELECT distinct LCASE(comment_author_email) as email, count(distinct comment_post_ID) as ccount FROM $wpdb->comments WHERE comment_subscribe='Y' AND comment_approved = '1' GROUP BY email ORDER BY ccount DESC");
@@ -1053,10 +1056,39 @@ function sg_subscribe_admin($standalone = false) {
 					$enc_email = urlencode($email);
 					echo "<li>($ccount) <a href='{$sg_subscribe->form_action}&email=$enc_email'>$email</a></li>\n";
 				}
-				echo "</ul>\n";
-			}
-
 ?>
+				</ul>
+				<legend><?php _e('Subscriber List (for copy-pasting into <code>CC:</code> e-mail field)', 'subscribe-to-comments'); ?></legend>
+				<p><textarea cols="60" rows="10"><?php echo implode(', ', array_keys($all_subscriptions) ); ?></textarea></p>
+				<legend><?php _e('Top Subscribed Posts', 'subscribe-to-comments'); ?></legend>
+				<?php
+				$top_subscribed_posts1 = $wpdb->get_results("SELECT distinct comment_post_ID as post_id, count(distinct comment_author_email) as ccount FROM $wpdb->comments WHERE comment_subscribe='Y' AND comment_approved = '1' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
+				$top_subscribed_posts2 = $wpdb->get_results("SELECT distinct post_id, count(distinct meta_value) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
+				// var_dump($top_subscribed_posts1);
+				// echo '<hr />';
+				// var_dump($top_subscribed_posts2);
+				// echo '<hr />';
+				$all_top_posts = array();
+
+				foreach ( array('top_subscribed_posts1', 'top_subscribed_posts2') as $each ) {
+					foreach ( (array) $$each as $pid ) {
+						if ( !isset($all_top_posts[$pid->post_id]) )
+							$all_top_posts[$pid->post_id] = (int) $pid->ccount;
+						else
+							$all_top_posts[$pid->post_id] += (int) $pid->ccount;
+					}
+				}
+				arsort($all_top_posts);
+				// var_dump($all_top_posts);
+
+				echo "<ol>\n";
+				foreach ( $all_top_posts as $pid => $ccount ) {
+					echo "<li>($ccount) <a href='" . get_permalink($pid) . "'>" . get_the_title($pid) . "</a></li>\n";
+				}
+				echo "</ol>";
+				?>
+
+	<?php } ?>
 
 		</fieldset>
 
