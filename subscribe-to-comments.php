@@ -128,8 +128,12 @@ return false;
 class sg_subscribe_settings {
 	function options_page_contents() {
 		/** Commit changed options if posted **/
-		if ( $_SERVER['REQUEST_METHOD'] == 'POST' && current_user_can('manage_options') && check_admin_referer('subscribe-to-comments-update_options') )
-			update_option('sg_subscribe_settings', stripslashes($_POST['sg_subscribe_settings']));
+		// var_dump($_POST);
+		if ( isset($_POST['sg_subscribe_settings_submit']) ) {
+			check_admin_referer('subscribe-to-comments-update_options');
+			update_option('sg_subscribe_settings', $_POST['sg_subscribe_settings']);
+		}
+
 
 		echo '<h2>Subscribe to Comments Options</h2>';
 		echo '<ul>';
@@ -203,7 +207,7 @@ class sg_subscribe_settings {
 	  echo '" /></p></div>';
 
 		if ( function_exists('wp_nonce_field') )
-		wp_nonce_field('subscribe-to-comments-update_options');
+			wp_nonce_field('subscribe-to-comments-update_options');
 
 		echo '</form>';
 	}
@@ -1011,11 +1015,12 @@ function sg_subscribe_admin($standalone = false) {
 
 
 	<?php if ( current_user_can('manage_options') ) { ?>
-		<?php if ( $_REQUEST['email'] ) : ?>
-			<p><a href="<?php echo $sg_subscribe->form_action; ?>">&laquo; Back</a></p>
-		<?php endif; ?>
 
 		<fieldset class="options">
+			<?php if ( $_REQUEST['email'] ) : ?>
+				<p><a href="<?php echo $sg_subscribe->form_action; ?>"><?php _e('&laquo; Back'); ?></a></p>
+			<?php endif; ?>
+
 			<legend><?php _e('Find Subscriptions', 'subscribe-to-comments'); ?></legend>
 
 			<p>
@@ -1034,11 +1039,16 @@ function sg_subscribe_admin($standalone = false) {
 
 <?php if ( !$_REQUEST['email'] ) : ?>
 		<fieldset class="options">
-			<legend><?php _e('Subscriber List', 'subscribe-to-comments'); ?></legend>
+			<?php if ( !$_REQUEST['showallsubscribers'] ) : ?>
+				<legend><?php _e('Top Subscriber List', 'subscribe-to-comments'); ?></legend>
+			<?php else : ?>
+				<legend><?php _e('Subscriber List', 'subscribe-to-comments'); ?></legend>
+			<?php endif; ?>
 
 <?php
-			$all_ct_subscriptions = $wpdb->get_results("SELECT distinct LCASE(comment_author_email) as email, count(distinct comment_post_ID) as ccount FROM $wpdb->comments WHERE comment_subscribe='Y' AND comment_approved = '1' GROUP BY email ORDER BY ccount DESC LIMIT 25");
-			$all_pm_subscriptions = $wpdb->get_results("SELECT distinct LCASE(meta_value) as email, count(post_id) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY email ORDER BY ccount DESC LIMIT 25");
+			$stc_limit = ( !$_REQUEST['showallsubscribers'] ) ? 'LIMIT 25' : '';
+			$all_ct_subscriptions = $wpdb->get_results("SELECT distinct LCASE(comment_author_email) as email, count(distinct comment_post_ID) as ccount FROM $wpdb->comments WHERE comment_subscribe='Y' AND comment_approved = '1' GROUP BY email ORDER BY ccount DESC $stc_limit");
+			$all_pm_subscriptions = $wpdb->get_results("SELECT distinct LCASE(meta_value) as email, count(post_id) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY email ORDER BY ccount DESC $stc_limit");
 			$all_subscriptions = array();
 
 			foreach ( array('all_ct_subscriptions', 'all_pm_subscriptions') as $each ) {
@@ -1050,16 +1060,26 @@ function sg_subscribe_admin($standalone = false) {
 				}
 			}
 
+if ( !$_REQUEST['showallsubscribers'] ) : ?>
+	<p><a href="<?php echo add_query_arg('showallsubscribers', '1', $sg_subscribe->form_action); ?>"><?php _e('Show all subscribers', 'subscribe-to-comments'); ?></a></p>
+<?php elseif ( !$_REQUEST['showccfield'] ) : ?>
+	<p><a href="<?php echo add_query_arg('showccfield', '1'); ?>"><?php _e('Show list of subscribers in <code>CC:</code>-field format (for bulk e-mailing)', 'subscribe-to-comments'); ?></a></p>
+<?php else : ?>
+	<p><a href="<?php echo $sg_subscribe->form_action; ?>"><?php _e('&laquo; Back to regular view'); ?></a></p>
+	<p><textarea cols="60" rows="10"><?php echo implode(', ', array_keys($all_subscriptions) ); ?></textarea></p>
+<?php endif;
+
+
 			if ( $all_subscriptions ) {
-				echo "<ul>\n";
-				foreach ( $all_subscriptions as $email => $ccount ) {
-					$enc_email = urlencode($email);
-					echo "<li>($ccount) <a href='{$sg_subscribe->form_action}&email=$enc_email'>$email</a></li>\n";
+				if ( !$_REQUEST['showccfield'] ) {
+					echo "<ul>\n";
+					foreach ( $all_subscriptions as $email => $ccount ) {
+						$enc_email = urlencode($email);
+						echo "<li>($ccount) <a href='{$sg_subscribe->form_action}&email=$enc_email'>$email</a></li>\n";
+					}
+					echo "</ul>\n";
 				}
 ?>
-				</ul>
-				<legend><?php _e('Subscriber List (for copy-pasting into <code>CC:</code> e-mail field)', 'subscribe-to-comments'); ?></legend>
-				<p><textarea cols="60" rows="10"><?php echo implode(', ', array_keys($all_subscriptions) ); ?></textarea></p>
 				<legend><?php _e('Top Subscribed Posts', 'subscribe-to-comments'); ?></legend>
 				<?php
 				$top_subscribed_posts1 = $wpdb->get_results("SELECT distinct comment_post_ID as post_id, count(distinct comment_author_email) as ccount FROM $wpdb->comments WHERE comment_subscribe='Y' AND comment_approved = '1' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
@@ -1081,11 +1101,11 @@ function sg_subscribe_admin($standalone = false) {
 				arsort($all_top_posts);
 				// var_dump($all_top_posts);
 
-				echo "<ol>\n";
+				echo "<ul>\n";
 				foreach ( $all_top_posts as $pid => $ccount ) {
 					echo "<li>($ccount) <a href='" . get_permalink($pid) . "'>" . get_the_title($pid) . "</a></li>\n";
 				}
-				echo "</ol>";
+				echo "</ul>";
 				?>
 
 	<?php } ?>
