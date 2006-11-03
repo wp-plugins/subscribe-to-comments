@@ -286,10 +286,9 @@ class sg_subscribe {
 			$this->form_action = 'edit.php?page=' . STC_PLUGIN_BASENAME;
 
 
-		foreach (array('email', 'key', 'ref', 'new_email') as $var) {
+		foreach ( array('email', 'key', 'ref', 'new_email') as $var )
 			if ( isset($_REQUEST[$var]) && !empty($_REQUEST[$var]) )
 				$this->{$var} = wp_specialchars(trim($_REQUEST[$var]));
-		}
 		if ( !$this->key )
 			$this->key = 'unset';
 	}
@@ -328,7 +327,8 @@ class sg_subscribe {
 
 
 	function subscriptions_from_post($postid) {
-		if ( is_array($this->post_subscriptions) ) return $this->post_subscriptions;
+		if ( is_array($this->post_subscriptions) )
+			return $this->post_subscriptions;
 		global $wpdb;
 		$postid = (int) $postid;
 		$this->post_subscriptions = $wpdb->get_results("SELECT comment_author_email FROM $wpdb->comments WHERE comment_post_ID = '$postid' AND comment_subscribe='Y' AND comment_author_email != '' AND comment_approved = '1' GROUP BY LCASE(comment_author_email)");
