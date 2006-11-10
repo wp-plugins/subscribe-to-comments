@@ -1,6 +1,7 @@
 === Subscribe to Comments ===
 Tags: comments, subscription
 Contributors: markjaquith
+Stable tag: 2.0.8
 
 Subscribe to Comments 2 is a WordPress plugin that allows commenters on an entry to subscribe to e-mail notifications for subsequent comments. It does NOT e-mail you new blog posts. For that functionality, use Skippy's Subscribe2 plugin.
 
