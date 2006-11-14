@@ -658,8 +658,15 @@ class sg_subscribe {
 
 	function send_mail($to, $subject, $message) {
 		$subject = '[' . get_bloginfo('name') . '] ' . $subject;
-		$headers  = "From: ".$this->site_name." <".$this->site_email.">\n";
-		$headers .= "MIME-Version: 1.0\n" . "Content-Type: text/plain; charset=\"" . get_settings('blog_charset') . "\"\n";
+
+		// strip out some chars that might cause issues, and assemble vars
+		$site_name = str_replace('"', "'", $this->site_name);
+		$site_email = str_replace(array('<', '>'), array('', ''), $this->site_email);
+		$charset = get_settings('blog_charset');
+
+		$headers  = "From: \"{$site_name}\" <{$site_email}>\n";
+		$headers .= "MIME-Version: 1.0\n";
+		$headers .= "Content-Type: text/plain; charset=\"{$charset}\"\n";
 		return wp_mail($to, $subject, $message, $headers);
 	}
 
