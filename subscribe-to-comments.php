@@ -337,10 +337,8 @@ class sg_subscribe {
 		$postid = (int) $postid;
 		$this->post_subscriptions = $wpdb->get_results("SELECT comment_author_email FROM $wpdb->comments WHERE comment_post_ID = '$postid' AND comment_subscribe='Y' AND comment_author_email != '' AND comment_approved = '1' GROUP BY LCASE(comment_author_email)");
 		$subscribed_without_comment = get_post_meta($postid, '_sg_subscribe-to-comments');
-		if ( is_array($subscribed_without_comment) ) {
-			foreach ( $subscribed_without_comment as $email )
-				$this->post_subscriptions[]->comment_author_email = $email;
-		}
+		foreach ( (array) $subscribed_without_comment as $email )
+			$this->post_subscriptions[]->comment_author_email = $email;
 		return $this->post_subscriptions;
 	}
 
@@ -352,26 +350,17 @@ class sg_subscribe {
 			$email = $this->email;
 		global $wpdb;
 		$email = $wpdb->escape(strtolower($email));
-		$i = 0;
+
 		$subscriptions = $wpdb->get_results("SELECT comment_post_ID FROM $wpdb->comments WHERE LCASE(comment_author_email) = '$email' AND comment_subscribe='Y' AND comment_approved = '1' GROUP BY comment_post_ID");
-		if ( is_array($subscriptions) ) {
-			foreach ( $subscriptions as $subscription ) {
-				$this->email_subscriptions[$i] = $subscription->comment_post_ID;
-				$i++;
-			}
-		}
+		foreach ( (array) $subscriptions as $subscription )
+			$this->email_subscriptions[] = $subscription->comment_post_ID;
 		$subscriptions = $wpdb->get_results("SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' AND LCASE(meta_value) = '$email' GROUP BY post_id");
 		if ( is_array($subscriptions) ) {
-		foreach ($subscriptions as $subscription) {
-			$this->email_subscriptions[$i] = $subscription->post_id;
-			$i++;
-			}
-		}
-		if ( $i > 0 ) {
+			foreach ($subscriptions as $subscription)
+				$this->email_subscriptions[] = $subscription->post_id;
 			sort($this->email_subscriptions, SORT_NUMERIC);
 			return $this->email_subscriptions;
 		}
-		// no subscriptions
 		return false;
 	}
 
@@ -392,7 +381,7 @@ class sg_subscribe {
 			$this->add_error(__('This e-mail address may not be subscribed', 'subscribe-to-comments'),'solo_subscribe');
 
 		if ( is_array($this->subscriptions_from_email($email)) )
-			if (in_array($postid, $this->subscriptions_from_email($email))) {
+			if (in_array($postid, (array) $this->subscriptions_from_email($email))) {
 				// already subscribed
 				setcookie('comment_author_email_' . COOKIEHASH, stripslashes($email), time() + 30000000, COOKIEPATH);
 				$this->add_error(__('You appear to be already subscribed to this entry.', 'subscribe-to-comments'),'solo_subscribe');
@@ -429,7 +418,7 @@ class sg_subscribe {
     	$email = $wpdb->escape(strtolower($wpdb->get_var("SELECT comment_author_email FROM $wpdb->comments WHERE comment_ID = '$cid'")));
 		$postid = $wpdb->get_var("SELECT comment_post_ID from $wpdb->comments WHERE comment_ID = '$cid'");
 
-		$previously_subscribed = ( $wpdb->get_var("SELECT comment_subscribe from $wpdb->comments WHERE comment_post_ID = '$postid' AND LCASE(comment_author_email) = '$email' AND comment_subscribe = 'Y' LIMIT 1") || in_array(stripslashes($email), get_post_meta($postid, '_sg_subscribe-to-comments')) ) ? true : false;
+		$previously_subscribed = ( $wpdb->get_var("SELECT comment_subscribe from $wpdb->comments WHERE comment_post_ID = '$postid' AND LCASE(comment_author_email) = '$email' AND comment_subscribe = 'Y' LIMIT 1") || in_array(stripslashes($email), (array) get_post_meta($postid, '_sg_subscribe-to-comments')) ) ? true : false;
 
 		// If user wants to be notified or has previously subscribed, set the flag on this current comment
 		if (($_POST['subscribe'] == 'subscribe' && is_email($email)) || $previously_subscribed) {
@@ -449,7 +438,7 @@ class sg_subscribe {
 		$email = strtolower($email);
 		// add the option if it doesn't exist
 		add_option('do_not_mail', '');
-		$blocked = explode (' ', get_settings('do_not_mail'));
+		$blocked = (array) explode (' ', get_settings('do_not_mail'));
 		if ( in_array($email, $blocked) )
 			return true;
 		return false;
@@ -508,7 +497,7 @@ class sg_subscribe {
 		$subscriber_emails = array();
 
 		// We run the comment loop, and put each unique subscriber into a new array
-		foreach ( $comments as $comment ) {
+		foreach ( (array) $comments as $comment ) {
 			if ( comment_subscription_status() && !in_array($comment->comment_author_email, $subscriber_emails) ) {
 				$sg_subscribers[] = $comment;
 				$subscriber_emails[] = $comment->comment_author_email;
@@ -617,15 +606,13 @@ class sg_subscribe {
 			$subject = sprintf(__('New Comment On: %s', 'subscribe-to-comments'), stripslashes($post->post_title));
 
 			$subscriptions = $this->subscriptions_from_post($comment->comment_post_ID);
-			if ( is_array($subscriptions) ) {
-				foreach ( $subscriptions as $email ) {
-					if ( !$this->is_blocked($email->comment_author_email) && $email->comment_author_email != $comment->comment_author_email && is_email($email->comment_author_email) ) {
-					        $message_final = str_replace('[email]', urlencode($email->comment_author_email), $message);
-					        $message_final = str_replace('[key]', $this->generate_key($email->comment_author_email), $message_final);
-						$this->send_mail($email->comment_author_email, $subject, $message_final);
-					}
-				} // foreach subscription
-			} // if subscriptions
+			foreach ( (array) $subscriptions as $email ) {
+				if ( !$this->is_blocked($email->comment_author_email) && $email->comment_author_email != $comment->comment_author_email && is_email($email->comment_author_email) ) {
+				        $message_final = str_replace('[email]', urlencode($email->comment_author_email), $message);
+				        $message_final = str_replace('[key]', $this->generate_key($email->comment_author_email), $message_final);
+					$this->send_mail($email->comment_author_email, $subject, $message_final);
+				}
+			} // foreach subscription
 		} // end if comment approved
 		return $cid;
 	}
@@ -679,7 +666,6 @@ class sg_subscribe {
 			$return = true;
 		if ( $wpdb->query("UPDATE $wpdb->postmeta SET meta_value = '$new_email' WHERE meta_value = '$email' AND meta_key = '_sg_subscribe-to-comments'") )
 			$return = true;
-
 		return $return;
 	}
 
@@ -730,7 +716,7 @@ class sg_subscribe {
 			update_option('sg_subscribe_settings', $settings);
 
 		$column_name = 'comment_subscribe';
-		foreach ($wpdb->get_col("DESC $wpdb->comments", 0) as $column )
+		foreach ( (array) $wpdb->get_col("DESC $wpdb->comments", 0) as $column )
 			if ($column == $column_name)
 				return true;
 
@@ -759,7 +745,8 @@ class sg_subscribe {
 			return 'admin';
 
 		if ( is_array($this->subscriptions_from_email($email)) )
-			if ( in_array($post->ID, $this->email_subscriptions) ) return $email;
+			if ( in_array($post->ID, (array) $this->email_subscriptions) )
+				return $email;
 		return false;
 	}
 
@@ -846,8 +833,6 @@ function sg_subscribe_admin_standalone() {
 }
 
 function sg_subscribe_admin($standalone = false) {
-
-	// need to declare these global;
 	global $wpdb, $sg_subscribe;
 
 	sg_subscribe_start();
@@ -928,7 +913,6 @@ function sg_subscribe_admin($standalone = false) {
 
 	if ( $sg_subscribe->standalone ) {
 		if ( !$sg_subscribe->use_wp_style && !empty($sg_subscribe->header) ) {
-
 		@include($sg_subscribe->header);
 		echo $sg_subscribe->before_manager;
 	} else { ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -1080,7 +1064,7 @@ if ( !$_REQUEST['showallsubscribers'] ) : ?>
 			if ( $all_subscriptions ) {
 				if ( !$_REQUEST['showccfield'] ) {
 					echo "<ul>\n";
-					foreach ( $all_subscriptions as $email => $ccount ) {
+					foreach ( (array) $all_subscriptions as $email => $ccount ) {
 						$enc_email = urlencode($email);
 						echo "<li>($ccount) <a href='{$sg_subscribe->form_action}&email=$enc_email'>$email</a></li>\n";
 					}
@@ -1091,10 +1075,6 @@ if ( !$_REQUEST['showallsubscribers'] ) : ?>
 				<?php
 				$top_subscribed_posts1 = $wpdb->get_results("SELECT distinct comment_post_ID as post_id, count(distinct comment_author_email) as ccount FROM $wpdb->comments WHERE comment_subscribe='Y' AND comment_approved = '1' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
 				$top_subscribed_posts2 = $wpdb->get_results("SELECT distinct post_id, count(distinct meta_value) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
-				// var_dump($top_subscribed_posts1);
-				// echo '<hr />';
-				// var_dump($top_subscribed_posts2);
-				// echo '<hr />';
 				$all_top_posts = array();
 
 				foreach ( array('top_subscribed_posts1', 'top_subscribed_posts2') as $each ) {
@@ -1106,7 +1086,6 @@ if ( !$_REQUEST['showallsubscribers'] ) : ?>
 					}
 				}
 				arsort($all_top_posts);
-				// var_dump($all_top_posts);
 
 				echo "<ul>\n";
 				foreach ( $all_top_posts as $pid => $ccount ) {
