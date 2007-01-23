@@ -355,12 +355,11 @@ class sg_subscribe {
 		foreach ( (array) $subscriptions as $subscription )
 			$this->email_subscriptions[] = $subscription->comment_post_ID;
 		$subscriptions = $wpdb->get_results("SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' AND LCASE(meta_value) = '$email' GROUP BY post_id");
-		if ( is_array($subscriptions) ) {
-			foreach ($subscriptions as $subscription)
-				$this->email_subscriptions[] = $subscription->post_id;
-			$this->email_subscriptions = (array) $this->email_subscriptions;
+		foreach ( (array) $subscriptions as $subscription)
+			$this->email_subscriptions[] = $subscription->post_id;
+		if ( is_array($this->email_subscriptions) ) {
 			sort($this->email_subscriptions, SORT_NUMERIC);
-			return (array) $this->email_subscriptions;
+			return $this->email_subscriptions;
 		}
 		return false;
 	}
