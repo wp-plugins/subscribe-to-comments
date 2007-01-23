@@ -358,8 +358,8 @@ class sg_subscribe {
 		if ( is_array($subscriptions) ) {
 			foreach ($subscriptions as $subscription)
 				$this->email_subscriptions[] = $subscription->post_id;
-			sort($this->email_subscriptions, SORT_NUMERIC);
-			return $this->email_subscriptions;
+			sort( (array) $this->email_subscriptions, SORT_NUMERIC);
+			return (array) $this->email_subscriptions;
 		}
 		return false;
 	}
