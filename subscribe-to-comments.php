@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.1
+Version: 2.1.1-alpha-1
 Plugin URI: http://txfx.net/code/wordpress/subscribe-to-comments/
 Description: Allows readers to recieve notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
 Author: Mark Jaquith
@@ -14,14 +14,17 @@ function show_subscription_checkbox ($id='0') {
 	sg_subscribe_start();
 
 	if ( $sg_subscribe->checkbox_shown ) return $id;
-	if ( !$email = $sg_subscribe->current_viewer_subscription_status() ) : ?>
+	if ( !$email = $sg_subscribe->current_viewer_subscription_status() ) :
+		if (!empty($_COOKIE['subscribe_checkbox_'.COOKIEHASH]))
+			$checked_status = ( 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
+	?>
 
 <?php /* ------------------------------------------------------------------- */ ?>
 <?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
 <?php /* ------------------------------------------------------------------- */ ?>
 
 	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
-        <input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ($sg_subscribe->default_subscribed) echo 'checked="checked" '; ?>/>
+        <input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ( (isset($checked_status) && $checked_status ) || ( !isset($checked_status) && $sg_subscribe->default_subscribed ) ) echo 'checked="checked" '; ?/>
         <label for="subscribe"><?php echo $sg_subscribe->not_subscribed_text; ?></label>
 	</p>
 
@@ -792,6 +795,14 @@ class sg_subscribe {
 
 
 
+function stc_checkbox_state($data) {
+	if ( isset($_POST['subscribe']) )
+		setcookie('subscribe_checkbox_'. COOKIEHASH, 'checked', time() + 30000000, COOKIEPATH);
+	else
+		setcookie('subscribe_checkbox_'. COOKIEHASH, 'unchecked', time() + 30000000, COOKIEPATH);
+	return $data;
+}
+
 
 function sg_subscribe_start() {
 	global $sg_subscribe;
@@ -814,6 +825,9 @@ add_action('wp_set_comment_status', create_function('$a', 'global $sg_subscribe;
 add_action('admin_menu', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->add_admin_menu();'));
 add_action('admin_head', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->sg_wp_head();'));
 add_action('edit_comment', array('sg_subscribe', 'on_edit'));
+
+// save users' checkbox preference
+add_filter('preprocess_comment', 'stc_checkbox_state', 1);
 
 
 // detect "subscribe without commenting" attempts
