@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.1.1-alpha-1
+Version: 2.1.1
 Plugin URI: http://txfx.net/code/wordpress/subscribe-to-comments/
 Description: Allows readers to receive notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
 Author: Mark Jaquith
@@ -77,10 +77,10 @@ if ( !$sg_subscribe->current_viewer_subscription_status() ) :
 <?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
 <?php /* ------------------------------------------------------------------- */ ?>
 
-	<form action="http://<?php echo $_SERVER['HTTP_HOST'] . wp_specialchars($_SERVER['REQUEST_URI'], 1); ?>" method="post">
+	<form action="" method="post">
 	<input type="hidden" name="solo-comment-subscribe" value="solo-comment-subscribe" />
-	<input type="hidden" name="postid" value="<?php echo $id; ?>" />
-	<input type="hidden" name="ref" value="<?php echo urlencode('http://' . $_SERVER['HTTP_HOST'] . wp_specialchars($_SERVER['REQUEST_URI'], 1)); ?>" />
+	<input type="hidden" name="postid" value="<?php echo (int) $id; ?>" />
+	<input type="hidden" name="ref" value="<?php echo urlencode('http://' . $_SERVER['HTTP_HOST'] . attribute_escape($_SERVER['REQUEST_URI'])); ?>" />
 
 	<p class="solo-subscribe-to-comments">
 	<?php _e('Subscribe without commenting', 'subscribe-to-comments'); ?>
@@ -294,7 +294,7 @@ class sg_subscribe {
 
 		foreach ( array('email', 'key', 'ref', 'new_email') as $var )
 			if ( isset($_REQUEST[$var]) && !empty($_REQUEST[$var]) )
-				$this->{$var} = wp_specialchars(trim($_REQUEST[$var]), 1);
+				$this->{$var} = attribute_escape(trim(stripslashes($_REQUEST[$var])));
 		if ( !$this->key )
 			$this->key = 'unset';
 	}
@@ -756,11 +756,11 @@ class sg_subscribe {
 	function manage_link($email='', $html=true, $echo=true) {
 		$link  = get_option('home') . '/?wp-subscription-manager=1';
 		if ( $email != 'admin' ) {
-			$link = add_query_arg('email', urlencode(urlencode($email)), $link);
+			$link = add_query_arg('email', urlencode($email), $link);
 			$link = add_query_arg('key', $this->generate_key($email), $link);
 		}
-		$link = add_query_arg('ref', urlencode('http://' . $_SERVER['HTTP_HOST'] . wp_specialchars($_SERVER['REQUEST_URI'], 1)), $link);
-		$link = str_replace('+', '%2B', $link);
+		$link = add_query_arg('ref', rawurlencode('http://' . $_SERVER['HTTP_HOST'] . attribute_escape($_SERVER['REQUEST_URI'])), $link);
+		//$link = str_replace('+', '%2B', $link);
 		if ( $html )
 			$link = htmlentities($link);
 		if ( !$echo )
@@ -1062,11 +1062,11 @@ function sg_subscribe_admin($standalone = false) {
 			}
 
 if ( !$_REQUEST['showallsubscribers'] ) : ?>
-	<p><a href="<?php echo add_query_arg('showallsubscribers', '1', $sg_subscribe->form_action); ?>"><?php _e('Show all subscribers', 'subscribe-to-comments'); ?></a></p>
+	<p><a href="<?php echo attribute_escape(add_query_arg('showallsubscribers', '1', $sg_subscribe->form_action)); ?>"><?php _e('Show all subscribers', 'subscribe-to-comments'); ?></a></p>
 <?php elseif ( !$_REQUEST['showccfield'] ) : ?>
 	<p><a href="<?php echo add_query_arg('showccfield', '1'); ?>"><?php _e('Show list of subscribers in <code>CC:</code>-field format (for bulk e-mailing)', 'subscribe-to-comments'); ?></a></p>
 <?php else : ?>
-	<p><a href="<?php echo $sg_subscribe->form_action; ?>"><?php _e('&laquo; Back to regular view'); ?></a></p>
+	<p><a href="<?php echo attribute_escape($sg_subscribe->form_action); ?>"><?php _e('&laquo; Back to regular view'); ?></a></p>
 	<p><textarea cols="60" rows="10"><?php echo implode(', ', array_keys($all_subscriptions) ); ?></textarea></p>
 <?php endif;
 
@@ -1076,7 +1076,7 @@ if ( !$_REQUEST['showallsubscribers'] ) : ?>
 					echo "<ul>\n";
 					foreach ( (array) $all_subscriptions as $email => $ccount ) {
 						$enc_email = urlencode($email);
-						echo "<li>($ccount) <a href='{$sg_subscribe->form_action}&email=$enc_email'>$email</a></li>\n";
+						echo "<li>($ccount) <a href='" . attribute_escape($sg_subscribe->form_action . "&email=$enc_email") . "'>" . wp_specialchars($email) . "</a></li>\n";
 					}
 					echo "</ul>\n";
 				}
