@@ -1,7 +1,7 @@
 === Subscribe to Comments ===
 Tags: comments, subscription, email
 Contributors: markjaquith
-Requires at least: 2.0
+Requires at least: 2.0.6
 Tested up to: 2.2.1
 Stable tag: trunk
 
