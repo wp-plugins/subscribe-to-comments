@@ -15,8 +15,7 @@ function show_subscription_checkbox ($id='0') {
 
 	if ( $sg_subscribe->checkbox_shown ) return $id;
 	if ( !$email = $sg_subscribe->current_viewer_subscription_status() ) :
-		if (!empty($_COOKIE['subscribe_checkbox_'.COOKIEHASH]))
-			$checked_status = ( 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
+		$checked_status = ( !empty($_COOKIE['subscribe_checkbox_'.COOKIEHASH]) && 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
 	?>
 
 <?php /* ------------------------------------------------------------------- */ ?>
@@ -24,7 +23,7 @@ function show_subscription_checkbox ($id='0') {
 <?php /* ------------------------------------------------------------------- */ ?>
 
 	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
-	<input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ( (isset($checked_status) && $checked_status ) || ( !isset($checked_status) && $sg_subscribe->default_subscribed ) ) echo 'checked="checked" '; ?>/>
+	<input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ( $checked_status ) echo 'checked="checked" '; ?>/>
 	<label for="subscribe"><?php echo $sg_subscribe->not_subscribed_text; ?></label>
 	</p>
 
@@ -144,7 +143,6 @@ class sg_subscribe_settings {
 
 		echo '<li><label for="name">' . __('"From" name for notifications:', 'subscribe-to-comments') . ' <input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . sg_subscribe_settings::form_setting('name') . '" /></label></li>';
 		echo '<li><label for="email">' . __('"From" e-mail addresss for notifications:', 'subscribe-to-comments') . ' <input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . sg_subscribe_settings::form_setting('email') . '" /></label></li>';
-		echo '<li><label for="default_subscribed"><input type="checkbox" id="default_subscribed" name="sg_subscribe_settings[default_subscribed]" value="default_subscribed"' . sg_subscribe_settings::checkflag('default_subscribed') . ' /> ' . __('"Subscribe" box should be checked by default', 'subscribe-to-comments') . '</label></li>';
 		echo '<li><label for="clear_both"><input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . sg_subscribe_settings::checkflag('clear_both') . ' /> ' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label></li>';
 		echo '</ul>';
 
@@ -700,7 +698,7 @@ class sg_subscribe {
 		global $wpdb;
 
 		// add the options
-		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'default_subscribed' => '', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments'), 'version' => $this->version));
+		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments'), 'version' => $this->version));
 
 		$settings = get_option('sg_subscribe_settings');
 		if ( !$settings ) { // work around WP 2.2/2.2.1 bug
