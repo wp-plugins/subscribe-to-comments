@@ -333,15 +333,15 @@ class sg_subscribe {
 
 
 	function subscriptions_from_post($postid) {
-		if ( is_array($this->post_subscriptions) )
-			return $this->post_subscriptions;
-		global $wpdb;
 		$postid = (int) $postid;
+		if ( is_array($this->post_subscriptions[ $postid ]) )
+			return $this->post_subscriptions[ $postid ];
+		global $wpdb;
 		$this->post_subscriptions = $wpdb->get_results("SELECT comment_author_email FROM $wpdb->comments WHERE comment_post_ID = '$postid' AND comment_subscribe='Y' AND comment_author_email != '' AND comment_approved = '1' GROUP BY LCASE(comment_author_email)");
 		$subscribed_without_comment = get_post_meta($postid, '_sg_subscribe-to-comments');
 		foreach ( (array) $subscribed_without_comment as $email )
-			$this->post_subscriptions[]->comment_author_email = $email;
-		return $this->post_subscriptions;
+			$this->post_subscriptions[ $postid ][]->comment_author_email = $email;
+		return $this->post_subscriptions[ $postid ];
 	}
 
 
