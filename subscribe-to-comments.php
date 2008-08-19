@@ -128,6 +128,11 @@ return false;
 /* ============================= */
 
 class sg_subscribe_settings {
+
+	function tr( $option_title, $option_text ) {
+		echo "<tr valign='top'>\n\t<th scope='row'>" . __( $option_title, 'subscribe-to-comments' ) . "</th>\n\t<td>" . $option_text . "</td>\n</tr>\n";
+	}
+	
 	function options_page_contents() {
 		global $sg_subscribe;
 		sg_subscribe_start();
@@ -138,44 +143,43 @@ class sg_subscribe_settings {
 		}
 
 
-		echo '<h2>'.__('Subscribe to Comments Options','subscribe-to-comments').'</h2>';
-		echo '<ul>';
+		echo '<h2>'.__('Subscribe to Comments Settings','subscribe-to-comments').'</h2>';
 
-		echo '<li><label for="name">' . __('"From" name for notifications:', 'subscribe-to-comments') . ' <input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . sg_subscribe_settings::form_setting('name') . '" /></label></li>';
-		echo '<li><label for="email">' . __('"From" e-mail addresss for notifications:', 'subscribe-to-comments') . ' <input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . sg_subscribe_settings::form_setting('email') . '" /></label></li>';
-		echo '<li><label for="clear_both"><input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . sg_subscribe_settings::checkflag('clear_both') . ' /> ' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label></li>';
-		echo '</ul>';
 
-		echo '<fieldset><legend>' . __('Comment Form Text', 'subscribe-to-comments') . '</legend>';
+		echo '<h3>Notification e-mails</h3>';
+		echo '<table class="form-table">';
+		sg_subscribe_settings::tr( '"From" name', '<input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . sg_subscribe_settings::form_setting('name') . '" />' );
+		sg_subscribe_settings::tr( '"From" address', '<input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . sg_subscribe_settings::form_setting('email') . '" />' );
+		echo '</table>';
 
+		echo '<h3>' . __('Comment form Layout') . '</h3>';
+		echo '<table class="form-table">';
+		sg_subscribe_settings::tr( 'CSS clearing', '<input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . sg_subscribe_settings::checkflag('clear_both') . ' /> <label for="clear_both">' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label>' );
+		echo '</table>';
+
+		echo '<h3>' . __('Comment form text', 'subscribe-to-comments') . '</h3>';
 		echo '<p>' . __('Customize the messages shown to different people.  Use <code>[manager_link]</code> to insert the URI to the Subscription Manager.', 'subscribe-to-comments') . '</p>';
+		echo '<table class="form-table">';
+		sg_subscribe_settings::tr( 'Not subscribed text', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="not_subscribed_text" name="sg_subscribe_settings[not_subscribed_text]">' . sg_subscribe_settings::textarea_setting('not_subscribed_text') . '</textarea>' );
+		sg_subscribe_settings::tr( 'Subscribed text', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="subscribed_text" name="sg_subscribe_settings[subscribed_text]">' . sg_subscribe_settings::textarea_setting('subscribed_text') . '</textarea>' );
+		sg_subscribe_settings::tr( 'Entry author text', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="author_text" name="sg_subscribe_settings[author_text]">' . sg_subscribe_settings::textarea_setting('author_text') . '</textarea>' );
+		echo '</table>';
 
-		echo '<ul>';
+		echo '<h3>' . __('Subscription manager', 'subscribe-to-comments') . '</h3>';
+		echo '<table class="form-table">';
+		sg_subscribe_settings::tr( 'Custom style', '<input type="checkbox" onchange="if(this.checked){document.getElementById(\'stc-custom-style-div\').style.display=\'block\';}else{document.getElementById(\'stc-custom-style-div\').style.display=\'none\';}" id="use_custom_style" name="sg_subscribe_settings[use_custom_style]" value="use_custom_style"' . sg_subscribe_settings::checkflag('use_custom_style') . ' /> <label for="use_custom_style">' . __('Use custom style for Subscription Manager', 'subscribe-to-comments') . '</label>' );
+		echo '</table>';
 
-		echo '<li><label for="not_subscribed_text">' . __('Not subscribed', 'subscribe-to-comments') . '</label><br /><textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="not_subscribed_text" name="sg_subscribe_settings[not_subscribed_text]">' . sg_subscribe_settings::textarea_setting('not_subscribed_text') . '</textarea></li>';
-
-		echo '<li><label for="subscribed_text">' . __('Subscribed', 'subscribe-to-comments') . '</label><br /><textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="subscribed_text" name="sg_subscribe_settings[subscribed_text]">' . sg_subscribe_settings::textarea_setting('subscribed_text') . '</textarea></li>';
-
-		echo '<li><label for="author_text">' . __('Entry Author', 'subscribe-to-comments') . '</label><br /><textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="author_text" name="sg_subscribe_settings[author_text]">' . sg_subscribe_settings::textarea_setting('author_text') . '</textarea></li>';
-
-		echo '</ul></fieldset>';
-
-
-		echo '<fieldset>';
-		echo '<legend><input type="checkbox" id="use_custom_style" name="sg_subscribe_settings[use_custom_style]" value="use_custom_style"' . sg_subscribe_settings::checkflag('use_custom_style') . ' /> <label for="use_custom_style">' . __('Use custom style for Subscription Manager', 'subscribe-to-comments') . '</label></legend>';
-
+		echo '<div id="stc-custom-style-div" style="' . ( ( sg_subscribe_settings::form_setting('use_custom_style') != 'use_custom_style' ) ? 'display:none' : '' ) . '">';
 		echo '<p>' . __('These settings only matter if you are using a custom style.  <code>[theme_path]</code> will be replaced with the path to your current theme.', 'subscribe-to-comments') . '</p>';
-
-		echo '<ul>';
-		echo '<li><label for="sg_sub_header">' . __('Path to header:', 'subscribe-to-comments') . ' <input type="text" size="40" id="sg_sub_header" name="sg_subscribe_settings[header]" value="' . sg_subscribe_settings::form_setting('header') . '" /></label></li>';
-		echo '<li><label for="sg_sub_sidebar">' . __('Path to sidebar:', 'subscribe-to-comments') . ' <input type="text" size="40" id="sg_sub_sidebar" name="sg_subscribe_settings[sidebar]" value="' . sg_subscribe_settings::form_setting('sidebar') . '" /></label></li>';
-		echo '<li><label for="sg_sub_footer">' . __('Path to footer:', 'subscribe-to-comments') . ' <input type="text" size="40" id="sg_sub_footer" name="sg_subscribe_settings[footer]" value="' . sg_subscribe_settings::form_setting('footer') . '" /></label></li>';
-
-
-		echo '<li><label for="before_manager">' . __('HTML for before the subscription manager:', 'subscribe-to-comments') . ' </label><br /><textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="before_manager" name="sg_subscribe_settings[before_manager]">' . sg_subscribe_settings::textarea_setting('before_manager') . '</textarea></li>';
-		echo '<li><label for="after_manager">' . __('HTML for after the subscription manager:', 'subscribe-to-comments') . ' </label><br /><textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="after_manager" name="sg_subscribe_settings[after_manager]">' . sg_subscribe_settings::textarea_setting('after_manager') . '</textarea></li>';
-		echo '</ul>';
-		echo '</fieldset>';
+		echo '<table class="form-table">';
+		sg_subscribe_settings::tr( 'Path to header', '<input type="text" size="40" id="sg_sub_header" name="sg_subscribe_settings[header]" value="' . sg_subscribe_settings::form_setting('header') . '" />' );
+		sg_subscribe_settings::tr( 'Path to sidebar', '<input type="text" size="40" id="sg_sub_sidebar" name="sg_subscribe_settings[sidebar]" value="' . sg_subscribe_settings::form_setting('sidebar') . '" />' );
+		sg_subscribe_settings::tr( 'Path to footer', '<input type="text" size="40" id="sg_sub_footer" name="sg_subscribe_settings[footer]" value="' . sg_subscribe_settings::form_setting('footer') . '" />' );
+		sg_subscribe_settings::tr( 'HTML for before the subscription manager:', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="before_manager" name="sg_subscribe_settings[before_manager]">' . sg_subscribe_settings::textarea_setting('before_manager') . '</textarea>' );
+		sg_subscribe_settings::tr( 'HTML for after the subscription manager:', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="after_manager" name="sg_subscribe_settings[after_manager]">' . sg_subscribe_settings::textarea_setting('after_manager') . '</textarea>' );
+		echo '</table>';
+		echo '</div>';
 	}
 
 	function checkflag($optname) {
@@ -198,14 +202,14 @@ class sg_subscribe_settings {
 	function options_page() {
 		/** Display "saved" notification on post **/
 		if ( isset($_POST['sg_subscribe_settings_submit']) )
-			echo '<div class="updated"><p><strong>' . __('Options saved.', 'subscribe-to-comments') . '</strong></p></div>';
+			echo '<div class="updated"><p><strong>' . __('Settings saved.', 'subscribe-to-comments') . '</strong></p></div>';
 
 		echo '<form method="post"><div class="wrap">';
 
 		sg_subscribe_settings::options_page_contents();
 
 	  echo '<p class="submit"><input type="submit" name="sg_subscribe_settings_submit" value="';
-	  _e('Update Options &raquo;', 'subscribe-to-comments');
+	  _e('Save Changes &raquo;', 'subscribe-to-comments');
 	  echo '" /></p></div>';
 
 		if ( function_exists('wp_nonce_field') )
@@ -860,7 +864,7 @@ function sg_subscribe_admin_standalone() {
 }
 
 function sg_subscribe_admin($standalone = false) {
-	global $wpdb, $sg_subscribe;
+	global $wpdb, $sg_subscribe, $wp_version;
 
 	sg_subscribe_start();
 
@@ -948,10 +952,12 @@ function sg_subscribe_admin($standalone = false) {
 	<title><?php printf(__('%s Comment Subscription Manager', 'subscribe-to-comments'), bloginfo('name')); ?></title>
 
 		<style type="text/css" media="screen">
+		<?php if ( version_compare( $wp_version, '2.5', '<' ) ) { ?>
 			@import url( <?php echo get_settings('siteurl'); ?>/wp-admin/wp-admin.css );
+		<?php } else { ?>
+			@import url( <?php echo get_settings('siteurl'); ?>/wp-admin/css/global.css );
+		<?php } ?>
 		</style>
-
-		<link rel="stylesheet" type="text/css" media="print" href="<?php echo get_settings('siteurl'); ?>/print.css" />
 
 		<meta http-equiv="Content-Type" content="text/html;
 	charset=<?php bloginfo('charset'); ?>" />
@@ -1036,7 +1042,7 @@ function sg_subscribe_admin($standalone = false) {
 
 		<fieldset class="options">
 			<?php if ( $_REQUEST['email'] ) : ?>
-				<p><a href="<?php echo $sg_subscribe->form_action; ?>"><?php _e('&laquo; Back'); ?></a></p>
+				<p><a href="<?php echo clean_url( $sg_subscribe->form_action ); ?>"><?php _e('&laquo; Back'); ?></a></p>
 			<?php endif; ?>
 
 			<legend><?php _e('Find Subscriptions', 'subscribe-to-comments'); ?></legend>
@@ -1045,7 +1051,7 @@ function sg_subscribe_admin($standalone = false) {
 			<?php _e('Enter an e-mail address to view its subscriptions or undo a block.', 'subscribe-to-comments'); ?>
 			</p>
 
-			<form name="getemail" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
+			<form name="getemail" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
 			<input type="hidden" name="ref" value="<?php echo $sg_subscribe->ref; ?>" />
 
 			<p>
@@ -1079,11 +1085,11 @@ function sg_subscribe_admin($standalone = false) {
 			}
 
 if ( !$_REQUEST['showallsubscribers'] ) : ?>
-	<p><a href="<?php echo attribute_escape(add_query_arg('showallsubscribers', '1', $sg_subscribe->form_action)); ?>"><?php _e('Show all subscribers', 'subscribe-to-comments'); ?></a></p>
+	<p><a href="<?php echo clean_url( attribute_escape(add_query_arg('showallsubscribers', '1', $sg_subscribe->form_action)) ); ?>"><?php _e('Show all subscribers', 'subscribe-to-comments'); ?></a></p>
 <?php elseif ( !$_REQUEST['showccfield'] ) : ?>
 	<p><a href="<?php echo add_query_arg('showccfield', '1'); ?>"><?php _e('Show list of subscribers in <code>CC:</code>-field format (for bulk e-mailing)', 'subscribe-to-comments'); ?></a></p>
 <?php else : ?>
-	<p><a href="<?php echo attribute_escape($sg_subscribe->form_action); ?>"><?php _e('&laquo; Back to regular view'); ?></a></p>
+	<p><a href="<?php echo clean_url($sg_subscribe->form_action); ?>"><?php _e('&laquo; Back to regular view'); ?></a></p>
 	<p><textarea cols="60" rows="10"><?php echo implode(', ', array_keys($all_subscriptions) ); ?></textarea></p>
 <?php endif;
 
@@ -1093,7 +1099,7 @@ if ( !$_REQUEST['showallsubscribers'] ) : ?>
 					echo "<ul>\n";
 					foreach ( (array) $all_subscriptions as $email => $ccount ) {
 						$enc_email = urlencode($email);
-						echo "<li>($ccount) <a href='" . attribute_escape($sg_subscribe->form_action . "&email=$enc_email") . "'>" . wp_specialchars($email) . "</a></li>\n";
+						echo "<li>($ccount) <a href='" . clean_url( $sg_subscribe->form_action . "&email=$enc_email" ) . "'>" . wp_specialchars($email) . "</a></li>\n";
 					}
 					echo "</ul>\n";
 				}
@@ -1154,7 +1160,7 @@ function checkAll(form) {
 				<?php printf(__('<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click "Remove Selected Subscription(s)" at the bottom of the list.', 'subscribe-to-comments'), $sg_subscribe->email); ?>
 				</p>
 
-				<form name="removeSubscription" id="removeSubscription" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
+				<form name="removeSubscription" id="removeSubscription" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
 				<input type="hidden" name="removesubscrips" value="removesubscrips" />
 	<?php $sg_subscribe->hidden_form_fields(); ?>
 
@@ -1181,7 +1187,7 @@ function checkAll(form) {
 		<fieldset class="options">
 			<legend><?php _e('Block All Notifications', 'subscribe-to-comments'); ?></legend>
 
-				<form name="blockemail" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
+				<form name="blockemail" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
 				<input type="hidden" name="blockemail" value="blockemail" />
 	<?php $sg_subscribe->hidden_form_fields(); ?>
 
@@ -1198,7 +1204,7 @@ function checkAll(form) {
 		<fieldset class="options">
 			<legend><?php _e('Change E-mail Address', 'subscribe-to-comments'); ?></legend>
 
-				<form name="changeemailrequest" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
+				<form name="changeemailrequest" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
 				<input type="hidden" name="changeemailrequest" value="changeemailrequest" />
 	<?php $sg_subscribe->hidden_form_fields(); ?>
 
