@@ -914,7 +914,7 @@ function sg_subscribe_start() {
 	global $sg_subscribe;
 
 	if ( !$sg_subscribe ) {
-		load_plugin_textdomain('subscribe-to-comments');
+		load_plugin_textdomain( 'subscribe-to-comments', trailingslashit( PLUGINDIR ) . dirname( plugin_basename( __FILE__ ) ), dirname( plugin_basename( __FILE__ ) ) );
 		$sg_subscribe = new sg_subscribe();
 	}
 }
