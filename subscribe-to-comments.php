@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.1.2
+Version: 2.2-alpha
 Plugin URI: http://txfx.net/code/wordpress/subscribe-to-comments/
 Description: Allows readers to receive notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
 Author: Mark Jaquith
@@ -805,20 +805,21 @@ class sg_subscribe {
 			exit;
 		}
 
+		if ( version_compare( $settings['version'], '2.2', '<' ) ) { // Upgrade to postmeta-driven subscriptions
+			foreach ( (array) $wpdb->get_col("DESC $wpdb->comments", 0) as $column ) {
+				if ( $column == 'comment_subscribe' ) {
+					$upgrade_comments = $wpdb->get_results( "SELECT comment_post_ID, comment_author_email FROM $wpdb->comments WHERE comment_subscribe = 'Y'" );
+					foreach ( (array) $upgrade_comments as $upgrade_comment )
+						$this->add_subscriber_by_post_id_and_email( $upgrade_comment->comment_post_ID, $upgrade_comment->comment_author_email );
+					// Done. Drop the column
+					$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN comment_subscribe");
+				}
+			}
+			$udpate = true;
+		}
+
 		if ( $update )
 			$this->update_settings($settings);
-
-		$column_name = 'comment_subscribe';
-		foreach ( (array) $wpdb->get_col("DESC $wpdb->comments", 0) as $column ) {
-			if ( $column == $column_name ) {
-				$upgrade_comments = $wpdb->get_results( "SELECT comment_post_ID, comment_author_email FROM $wpdb->comments WHERE comment_subscribe = 'Y'" );
-				foreach ( (array) $upgrade_comments as $upgrade_comment ) {
-					$this->add_subscriber_by_post_id_and_email( $upgrade_comment->comment_post_ID, $upgrade_comment->comment_author_email );
-				}
-				// Done. Drop the column
-				$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN comment_subscribe");
-			}
-		}
 	}
 
 
