@@ -126,8 +126,11 @@ function comment_subscription_status() {
 
 class sg_subscribe_settings {
 
-	function tr( $option_title, $option_text ) {
-		echo "<tr valign='top'>\n\t<th scope='row'>" . __( $option_title, 'subscribe-to-comments' ) . "</th>\n\t<td>" . $option_text . "</td>\n</tr>\n";
+	function tr( $option_slug, $option_title, $option_text, $description ='' ) {
+		echo "<tr valign='top'>\n\t<th scope='row'><label for='" . $option_slug . "'>" . $option_title . "</label></th>\n\t<td>" . $option_text;
+		if ( !empty( $description ) )
+			echo '<span class="setting-description">' . $description . '</span>';
+		echo "</td>\n</tr>\n";
 	}
 	
 	function options_page_contents() {
@@ -139,47 +142,48 @@ class sg_subscribe_settings {
 			$sg_subscribe->update_settings($update_settings);
 		}
 
+		echo '<h2>' . __( 'Subscribe to Comments Settings', 'subscribe-to-comments' ) . '</h2>';
 
-		echo '<h2>'.__('Subscribe to Comments Settings','subscribe-to-comments').'</h2>';
 
-
-		echo '<h3>Notification e-mails</h3>';
+		echo '<h3>' . __( 'Notification e-mails', 'subscribe-to-comments' ) . '</h3>';
 		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( '"From" name', '<input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . sg_subscribe_settings::form_setting('name') . '" />' );
-		sg_subscribe_settings::tr( '"From" address', '<input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . sg_subscribe_settings::form_setting('email') . '" />' );
+		sg_subscribe_settings::tr( 'name', __( '"From" name', 'subscribe-to-comments' ), '<input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . sg_subscribe_settings::form_setting('name') . '" />' );
+		sg_subscribe_settings::tr( 'email', __( '"From" address', 'subscribe-to-comments' ), '<input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . sg_subscribe_settings::form_setting('email') . '" />', __( 'You may want this to be a special account that you set up for this purpose, as it will go out to everyone who subscribes', 'subscribe-to-comments' ) );
+		sg_subscribe_settings::tr( 'double_opt_in', __( 'Double opt-in', 'subscribe-to-comments' ), '<input type="checkbox" id="double_opt_in" name="sg_subscribe_settings[double_opt_in]" value="double_opt_in"' . sg_subscribe_settings::checkflag('double_opt_in') . ' /> <label for="double_opt_in">' . __( 'Require verification of first-time subscription e-mails (this is known as "double opt-in" and is required by law in some countries)', 'subscribe-to-comments') . '</label>' );
 		echo '</table>';
 
-		echo '<h3>Double Opt-In</h3>';
+		echo '<h3>' . __('Subscriber name formatting', 'subscribe_to_comments') . '</h3>';
 		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'Opt-In', '<input type="checkbox" id="double_opt_in" name="sg_subscribe_settings[double_opt_in]" value="double_opt_in"' . sg_subscribe_settings::checkflag('double_opt_in') . ' /> <label for="double_opt_in">' . __('Require verification of subscription e-mails (this is known as "double opt-in" and is required by law in some countries)', 'subscribe-to-comments') . '</label>' );
+		sg_subscribe_settings::tr( 'subscribed_format', __( 'Subscribed format', 'subscribe-to-comments' ), '<input type="text" size="40" id="subscribed_format" name="sg_subscribe_settings[subscribed_format]" value="' . sg_subscribe_settings::form_setting('subscribed_format') . '" />', __( 'e.g. <code>%NAME% (subscribed)</code> will display <code>John Smith (subscribed)</code>', 'subscribe-to-comments' ) );
 		echo '</table>';
 
-		echo '<h3>' . __('Comment form Layout') . '</h3>';
+
+		echo '<h3>' . __('Comment form layout') . '</h3>';
 		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'CSS clearing', '<input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . sg_subscribe_settings::checkflag('clear_both') . ' /> <label for="clear_both">' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label>' );
+		sg_subscribe_settings::tr( 'clear_both', 'CSS clearing', '<input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . sg_subscribe_settings::checkflag('clear_both') . ' /> <label for="clear_both">' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label>' );
 		echo '</table>';
 
 		echo '<h3>' . __('Comment form text', 'subscribe-to-comments') . '</h3>';
 		echo '<p>' . __('Customize the messages shown to different people.  Use <code>[manager_link]</code> to insert the URI to the Subscription Manager.', 'subscribe-to-comments') . '</p>';
 		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'Not subscribed text', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="not_subscribed_text" name="sg_subscribe_settings[not_subscribed_text]">' . sg_subscribe_settings::textarea_setting('not_subscribed_text') . '</textarea>' );
-		sg_subscribe_settings::tr( 'Subscribed text', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="subscribed_text" name="sg_subscribe_settings[subscribed_text]">' . sg_subscribe_settings::textarea_setting('subscribed_text') . '</textarea>' );
-		sg_subscribe_settings::tr( 'Entry author text', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="author_text" name="sg_subscribe_settings[author_text]">' . sg_subscribe_settings::textarea_setting('author_text') . '</textarea>' );
+		sg_subscribe_settings::tr( 'not_subscribed_text', __( 'Not subscribed text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="not_subscribed_text" name="sg_subscribe_settings[not_subscribed_text]">' . sg_subscribe_settings::textarea_setting('not_subscribed_text') . '</textarea>' );
+		sg_subscribe_settings::tr( 'subscribed_text', __( 'Subscribed text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="subscribed_text" name="sg_subscribe_settings[subscribed_text]">' . sg_subscribe_settings::textarea_setting('subscribed_text') . '</textarea>' );
+		sg_subscribe_settings::tr( 'author_text', __( 'Entry author text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="author_text" name="sg_subscribe_settings[author_text]">' . sg_subscribe_settings::textarea_setting('author_text') . '</textarea>' );
 		echo '</table>';
 
 		echo '<h3>' . __('Subscription manager', 'subscribe-to-comments') . '</h3>';
 		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'Custom style', '<input type="checkbox" onchange="if(this.checked){document.getElementById(\'stc-custom-style-div\').style.display=\'block\';}else{document.getElementById(\'stc-custom-style-div\').style.display=\'none\';}" id="use_custom_style" name="sg_subscribe_settings[use_custom_style]" value="use_custom_style"' . sg_subscribe_settings::checkflag('use_custom_style') . ' /> <label for="use_custom_style">' . __('Use custom style for Subscription Manager', 'subscribe-to-comments') . '</label>' );
+		sg_subscribe_settings::tr( 'use_custom_style', __( 'Custom style', 'subscribe-to-comments' ), '<input type="checkbox" onchange="if(this.checked){document.getElementById(\'stc-custom-style-div\').style.display=\'block\';}else{document.getElementById(\'stc-custom-style-div\').style.display=\'none\';}" id="use_custom_style" name="sg_subscribe_settings[use_custom_style]" value="use_custom_style"' . sg_subscribe_settings::checkflag('use_custom_style') . ' /> <label for="use_custom_style">' . __('Use custom style for Subscription Manager', 'subscribe-to-comments') . '</label>' );
 		echo '</table>';
 
 		echo '<div id="stc-custom-style-div" style="' . ( ( sg_subscribe_settings::form_setting('use_custom_style') != 'use_custom_style' ) ? 'display:none' : '' ) . '">';
-		echo '<p>' . __('These settings only matter if you are using a custom style.  <code>[theme_path]</code> will be replaced with the path to your current theme.', 'subscribe-to-comments') . '</p>';
+		echo '<p>' . __( 'These settings only matter if you are using a custom style.  <code>[theme_path]</code> will be replaced with the path to your current theme.', 'subscribe-to-comments' ) . '</p>';
 		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'Path to header', '<input type="text" size="40" id="sg_sub_header" name="sg_subscribe_settings[header]" value="' . sg_subscribe_settings::form_setting('header') . '" />' );
-		sg_subscribe_settings::tr( 'Path to sidebar', '<input type="text" size="40" id="sg_sub_sidebar" name="sg_subscribe_settings[sidebar]" value="' . sg_subscribe_settings::form_setting('sidebar') . '" />' );
-		sg_subscribe_settings::tr( 'Path to footer', '<input type="text" size="40" id="sg_sub_footer" name="sg_subscribe_settings[footer]" value="' . sg_subscribe_settings::form_setting('footer') . '" />' );
-		sg_subscribe_settings::tr( 'HTML for before the subscription manager:', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="before_manager" name="sg_subscribe_settings[before_manager]">' . sg_subscribe_settings::textarea_setting('before_manager') . '</textarea>' );
-		sg_subscribe_settings::tr( 'HTML for after the subscription manager:', '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="after_manager" name="sg_subscribe_settings[after_manager]">' . sg_subscribe_settings::textarea_setting('after_manager') . '</textarea>' );
+		sg_subscribe_settings::tr( 'header', __( 'Path to header', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_header" name="sg_subscribe_settings[header]" value="' . sg_subscribe_settings::form_setting('header') . '" />' );
+		sg_subscribe_settings::tr( 'sidebar', __( 'Path to sidebar', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_sidebar" name="sg_subscribe_settings[sidebar]" value="' . sg_subscribe_settings::form_setting('sidebar') . '" />' );
+		sg_subscribe_settings::tr( 'footer', __( 'Path to footer', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_footer" name="sg_subscribe_settings[footer]" value="' . sg_subscribe_settings::form_setting('footer') . '" />' );
+		sg_subscribe_settings::tr( 'before_manager', __( 'HTML for before the subscription manager', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="before_manager" name="sg_subscribe_settings[before_manager]">' . sg_subscribe_settings::textarea_setting('before_manager') . '</textarea>' );
+		sg_subscribe_settings::tr( 'after_manager', __( 'HTML for after the subscription manager', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="after_manager" name="sg_subscribe_settings[after_manager]">' . sg_subscribe_settings::textarea_setting('after_manager') . '</textarea>' );
 		echo '</table>';
 		echo '</div>';
 	}
@@ -211,8 +215,8 @@ class sg_subscribe_settings {
 		sg_subscribe_settings::options_page_contents();
 
 	  echo '<p class="submit"><input type="submit" name="sg_subscribe_settings_submit" value="';
-	  _e('Save Changes &raquo;', 'subscribe-to-comments');
-	  echo '" /></p></div>';
+	  _e('Save Changes', 'subscribe-to-comments');
+	  echo '" class="button-primary" /></p></div>';
 
 		if ( function_exists('wp_nonce_field') )
 			wp_nonce_field('subscribe-to-comments-update_options');
@@ -256,6 +260,7 @@ class sg_subscribe {
 	var $not_subscribed_text;
 	var $subscribed_text;
 	var $author_text;
+	var $subscribed_format;
 	var $salt;
 	var $settings;
 	var $version = '2.2-alpha';
@@ -274,6 +279,7 @@ class sg_subscribe {
 		$this->not_subscribed_text = $this->settings['not_subscribed_text'];
 		$this->subscribed_text = $this->settings['subscribed_text'];
 		$this->author_text = $this->settings['author_text'];
+		$this->subscribed_format = $this->settings['subscribed_format'];
 		$this->clear_both = $this->settings['clear_both'];
 
 		$this->errors = '';
@@ -805,7 +811,7 @@ class sg_subscribe {
 		global $wpdb;
 
 		// add the options
-		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments'), 'version' => $this->version, 'double_opt_in' => ''));
+		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments'), 'version' => $this->version, 'double_opt_in' => '', 'subscribed_format' => '%NAME%'));
 
 		$settings = get_option('sg_subscribe_settings');
 
@@ -826,6 +832,11 @@ class sg_subscribe {
 
 		if ( !isset( $settings['double_opt_in'] ) ) {
 			$settings['double_opt_in'] = '';
+			$update = true;
+		}
+
+		if ( !isset( $settings['subscribed_format'] ) ) {
+			$settings['subscribed_format'] = '%NAME%';
 			$update = true;
 		}
 
@@ -855,6 +866,8 @@ class sg_subscribe {
 
 	function update_settings($settings) {
 		$settings['version'] = $this->version;
+		if ( strpos( $settings['subscribed_format'], '%NAME%' ) === false )
+			$settings['subscribed_format'] = '%NAME%';
 		update_option('sg_subscribe_settings', $settings);
 	}
 
@@ -919,6 +932,19 @@ class sg_subscribe {
 		return $cid;
 	}
 
+	function get_comment_author_format() {
+		if ( strpos( $this->subscribed_format, '%NAME%' ) === false )
+			return '%NAME%';
+		else
+			return $this->subscribed_format;
+	}
+
+	function comment_author_filter( $author ) {
+		if ( comment_subscription_status() )
+			$author = str_replace( '%NAME%', $author, $this->get_comment_author_format() );
+		return $author;
+	}
+
 	function add_admin_menu() {
 		add_management_page(__('Comment Subscription Manager', 'subscribe-to-comments'), __('Subscriptions', 'subscribe-to-comments'), 8, 'stc-management', 'sg_subscribe_admin');
 
@@ -942,9 +968,9 @@ function stc_checkbox_state($data) {
 
 
 function stc_comment_author_filter( $author ) {
-	if ( comment_subscription_status() )
-			$author .= ' ' . __( '(subscribed)', 'subscribe-to-comments' ); 
-	return $author;
+	global $sg_subscribe;
+	sg_subscribe_start();
+	return $sg_subscribe->comment_author_filter( $author );
 }
 
 
