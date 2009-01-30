@@ -1,8 +1,8 @@
 === Subscribe to Comments ===
 Tags: comments, subscription, email
-Contributors: markjaquith
-Requires at least: 2.0.6
-Tested up to: 2.3.1
+Contributors: markjaquith, joen
+Requires at least: 2.6
+Tested up to: 2.7
 Stable tag: trunk
 
 Subscribe to Comments allows commenters on an entry to subscribe to e-mail notifications for subsequent comments.

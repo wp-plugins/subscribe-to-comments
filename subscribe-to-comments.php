@@ -941,6 +941,13 @@ function stc_checkbox_state($data) {
 }
 
 
+function stc_comment_author_filter( $author ) {
+	if ( comment_subscription_status() )
+			$author .= ' ' . __( '(subscribed)', 'subscribe-to-comments' ); 
+	return $author;
+}
+
+
 function sg_subscribe_start() {
 	global $sg_subscribe;
 
@@ -963,6 +970,8 @@ add_action('admin_menu', create_function('$a', 'global $sg_subscribe; sg_subscri
 add_action('admin_head', create_function('$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->sg_wp_head();'));
 add_action('edit_comment', array('sg_subscribe', 'on_edit'));
 add_action('delete_comment', array('sg_subscribe', 'on_delete'));
+
+add_filter( 'get_comment_author_link', 'stc_comment_author_filter' );
 
 // save users' checkbox preference
 add_filter('preprocess_comment', 'stc_checkbox_state', 1);
