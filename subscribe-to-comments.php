@@ -102,12 +102,9 @@ Use this function on your comments display - to show whether a user is subscribe
 Note: this must be used within the comments loop!  It will not work properly outside of it.
 ------------------------- */
 function comment_subscription_status() {
-	global $comment;
-	if ( sg_subscribe::is_subscribed( $comment->comment_ID ) ) {
-		return true;
-	} else {
-		return false;
-	}
+	global $comment, $sg_subscribe;
+	sg_subscribe_start();
+	return !!$sg_subscribe->is_subscribed( $comment->comment_ID );
 }
 
 
@@ -519,7 +516,7 @@ class sg_subscribe {
 		$comment = &get_comment( $cid );
     	$email = strtolower( $comment->comment_author_email );
 		$postid = $comment->comment_post_ID;
-		return in_array( $email, (array) get_post_meta( $postid, '_sg_subscribe-to-comments' ) );
+		return in_array( $email, (array) $this->subscriptions_from_post( $postid ) );
 	}
 
 
