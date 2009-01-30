@@ -261,7 +261,7 @@ class sg_subscribe {
 	var $author_text;
 	var $salt;
 	var $settings;
-	var $version = '2.1.2';
+	var $version = '2.2-alpha';
 
 	function sg_subscribe() {
 		global $wpdb;
@@ -342,6 +342,16 @@ class sg_subscribe {
 		global $wpdb;
 		$postid = (int) $postid;
 		$this->post_subscriptions[$postid] = (array) get_post_meta($postid, '_sg_subscribe-to-comments');
+
+		// Cleanup!
+		$duplicates = $this->array_duplicates( $this->post_subscriptions[$postid] );
+		if ( $duplicates ) {
+			foreach ( (array) $duplicates as $duplicate ) {
+				delete_post_meta( $postid, '_sg_subscribe-to-comments', $duplicate );
+				$this->add_subscriber_by_post_id_and_email( $postid, $duplicate );
+			}
+		}
+
 		$this->post_subscriptions[$postid] = array_unique($this->post_subscriptions[$postid]);
 		return $this->post_subscriptions[$postid];
 	}
@@ -404,12 +414,35 @@ class sg_subscribe {
 			$this->add_error(__('You appear to be already subscribed to this entry.', 'subscribe-to-comments'),'solo_subscribe');
 
 		if ( !is_array($this->errors['solo_subscribe']) ) {
-			add_post_meta($postid, '_sg_subscribe-to-comments', $email);
+			add_post_meta($postid, '_sg_subscribe-to-comments', strtolower( $email ) );
 			setcookie('comment_author_email_' . COOKIEHASH, $email, time() + 30000000, COOKIEPATH);
 			$location = $this->manage_link($email, false, false) . '&subscribeid=' . $postid;
 			header("Location: $location");
 			exit();
 		}
+	}
+
+
+	// From: http://php.net/manual/en/function.array-unique.php#85109
+	function array_duplicates( $array ) {
+		if ( !is_array( $array ) )
+			return false;
+
+		$duplicates = array();
+		foreach ( $array as $key => $val ) {
+		end( $array );
+		$k = key($array);
+		$v = current($array);
+			while ( $k !== $key ) {
+				if ( $v === $val ) {
+					$duplicates[$key] = $v;
+					break;
+				}
+				$v = prev($array);
+				$k = key($array);
+			}
+		}
+		return $duplicates;
 	}
 
 
@@ -437,7 +470,7 @@ class sg_subscribe {
 		$already_subscribed_to_this_post = in_array( $email, (array) get_post_meta( $postid, '_sg_subscribe-to-comments' ) );
 
 		if ( is_email( $email ) && !$already_subscribed_to_this_post )
-			add_post_meta( $postid, '_sg_subscribe-to-comments', $email );
+			add_post_meta( $postid, '_sg_subscribe-to-comments', strtolower( $email ) );
 	}
 
 
@@ -458,10 +491,10 @@ class sg_subscribe {
 		$already_pending_on_this_post = in_array( $email, (array) get_post_meta( $postid, '_sg_subscribe-to-comments-pending' ) );
 		if ( is_email( $email ) && !$already_pending_on_this_post ) {
 			if ( !$wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->comments, $wpdb->postmeta WHERE comment_post_ID = post_id AND LCASE( meta_value ) = %s AND meta_key = '_sg_subscribe-to-comments-pending-with-email' AND comment_date_gmt > DATE_SUB( NOW(), INTERVAL 1 DAY)", $email ) ) ) {
-				add_post_meta( $postid, '_sg_subscribe-to-comments-pending-with-email', $email );
+				add_post_meta( $postid, '_sg_subscribe-to-comments-pending-with-email', strtolower( $email ) );
 				$this->send_pending_nag( $cid );
 			} else {
-				add_post_meta( $postid, '_sg_subscribe-to-comments-pending', $email );
+				add_post_meta( $postid, '_sg_subscribe-to-comments-pending', strtolower( $email ) );
 			}
 		}
 		return $cid;
