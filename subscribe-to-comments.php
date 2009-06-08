@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.2-alpha
+Version: 2.3-bleeding
 Plugin URI: http://txfx.net/code/wordpress/subscribe-to-comments/
 Description: Allows readers to receive notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
 Author: Mark Jaquith
@@ -237,7 +237,7 @@ class sg_subscribe_settings {
 class sg_subscribe {
 	var $errors;
 	var $messages;
-	var $post_subscriptions;
+	var $bid_post_subscriptions;
 	var $email_subscriptions;
 	var $subscriber_email;
 	var $site_email;
@@ -265,14 +265,19 @@ class sg_subscribe {
 	var $subscribed_format;
 	var $salt;
 	var $settings;
-	var $version = '2.2-alpha';
+	var $version = '2.3-bleeding';
+	var $wpmu;
+	var $wpmu_table;
 
 	function sg_subscribe() {
 		global $wpdb;
+		$this->wpmu = ( $wpdb->prefix != $wpdb->base_prefix );
+		if ( $this->is_wpmu() )
+			$this->wpmu_table = $wpdb->base_prefix . 'comment_subscriptions';
 		$this->db_upgrade_check();
 
 		$this->settings = get_option('sg_subscribe_settings');
-
+		
 		$this->salt = $this->settings['salt'];
 		$this->site_email = ( is_email($this->settings['email']) && $this->settings['email'] != 'email@example.com' ) ? $this->settings['email'] : get_bloginfo('admin_email');
 		$this->site_name = ( $this->settings['name'] != 'YOUR NAME' && !empty($this->settings['name']) ) ? $this->settings['name'] : get_bloginfo('name');
@@ -285,7 +290,7 @@ class sg_subscribe {
 		$this->clear_both = $this->settings['clear_both'];
 
 		$this->errors = '';
-		$this->post_subscriptions = array();
+		$this->bid_post_subscriptions = array();
 		$this->email_subscriptions = '';
 	}
 
@@ -308,6 +313,9 @@ class sg_subscribe {
 			$this->key = 'unset';
 	}
 
+	function is_wpmu() {
+		return (bool) $this->wpmu;
+	}
 
 	function add_error($text='generic error', $type='manager') {
 		$this->errors[$type][] = $text;
@@ -341,24 +349,52 @@ class sg_subscribe {
 	}
 
 
-	function subscriptions_from_post($postid) {
-		if ( is_array($this->post_subscriptions[$postid]) )
-			return $this->post_subscriptions[$postid];
+	function is_subscribed_email_post_bid( $email, $post_id, $bid = NULL ) {
+		global $wpdb, $blog_id;
+		$bid = ( NULL == $bid ) ? $blog_id : $bid;
+		$email = strtolower( $email );
+		if ( $this->is_wpmu() && $wpdb->get_var( $wpdb->prepare( "SELECT email FROM $this->wpmu_table WHERE email = %s AND post_id = %s AND blog_id = %s", $email, $post_id, $bid ) ) )
+			return true;
+		elseif ( $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM $wpdb->postmeta WHERE LCASE(meta_value) = %s AND meta_key = '_sg_subscribe-to-comments' AND post_id = %s", $email, $post_id ) ) )
+			return true;
+		return false;
+	}
+
+
+	function subscriptions_from_post($postid, $bid=NULL) {
+		global $blog_id, $wpdb;
+		if ( NULL == $bid )
+			$bid = $blog_id;
+		if ( is_array($this->bid_post_subscriptions[$bid][$postid]) )
+			return $this->bid_post_subscriptions[$bid][$postid];
 		global $wpdb;
 		$postid = (int) $postid;
-		$this->post_subscriptions[$postid] = (array) get_post_meta($postid, '_sg_subscribe-to-comments');
+		if ( $this->is_wpmu() ) {
+			$this->bid_post_subscriptions[$bid][$postid] = (array) $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT email FROM $this->wpmu_table WHERE blog_id = %d AND post_id = %d", $bid, $postid ) );
+		} else {
+			$this->bid_post_subscriptions[$bid][$postid] = (array) get_post_meta($postid, '_sg_subscribe-to-comments');
+		}
 
 		// Cleanup!
-		$duplicates = $this->array_duplicates( $this->post_subscriptions[$postid] );
-		if ( $duplicates ) {
-			foreach ( (array) $duplicates as $duplicate ) {
-				delete_post_meta( $postid, '_sg_subscribe-to-comments', $duplicate );
-				$this->add_subscriber_by_post_id_and_email( $postid, $duplicate );
+		$duplicates = $this->array_duplicates( $this->bid_post_subscriptions[$bid][$postid] );
+		if ( $this->is_wpmu() ) {
+			if ( $duplicates ) {
+				foreach ( (array) $duplicates as $duplicate ) {
+					$wpdb->query( $wpdb->prepare( "DELETE FROM $this->wpmu_table WHERE blog_id = %d AND post_id = %d", $bid, $postid ) );
+					$this->add_subscriber_by_post_id_and_email( $postid, $duplicate, $bid );
+				}
+			}
+		} else {
+			if ( $duplicates ) {
+				foreach ( (array) $duplicates as $duplicate ) {
+					delete_post_meta( $postid, '_sg_subscribe-to-comments', $duplicate );
+					$this->add_subscriber_by_post_id_and_email( $postid, $duplicate, $bid );
+				}
 			}
 		}
 
-		$this->post_subscriptions[$postid] = array_unique($this->post_subscriptions[$postid]);
-		return $this->post_subscriptions[$postid];
+		$this->bid_post_subscriptions[$bid][$postid] = array_unique($this->bid_post_subscriptions[$bid][$postid]);
+		return $this->bid_post_subscriptions[$bid][$postid];
 	}
 
 
@@ -367,14 +403,19 @@ class sg_subscribe {
 			return $this->email_subscriptions;
 		if ( !is_email($email) )
 			$email = $this->email;
-		global $wpdb;
+		global $wpdb, $blog_id;
 		$email = strtolower( $email );
 
-		$subscriptions = $wpdb->get_results( $wpdb->prepare( "SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' AND LCASE(meta_value) = %s GROUP BY post_id", $email ) );
+		if ( $this->is_wpmu() ) {
+			$where = ( current_user_can( 'manage_options' ) ) ? $wpdb->prepare( " AND blog_id = %d ", $blog_id ) : '';
+			$subscriptions = $wpdb->get_results( $wpdb->prepare( "SELECT blog_id, post_id FROM $this->wpmu_table WHERE email = %s AND status='active' $where", $email ) );
+		} else {
+			$subscriptions = $wpdb->get_results( $wpdb->prepare( "SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' AND LCASE(meta_value) = %s GROUP BY post_id", $email ) );
+		}
 		foreach ( (array) $subscriptions as $subscription)
-			$this->email_subscriptions[] = $subscription->post_id;
+			$this->email_subscriptions[] = array( ( isset( $subscription->blog_id ) ) ? $subscription->blog_id : $blog_id, $subscription->post_id );
 		if ( is_array($this->email_subscriptions) ) {
-			sort($this->email_subscriptions, SORT_NUMERIC);
+			usort($this->email_subscriptions, create_function( '$a,$b', 'if ($a[0] == $b[0]) { if ( $a[1] == $a[1] ) { return 0; } return ( $a[1] < $b[1] ) ? -1 : 1;} else { return ( $a[0] < $b[0] ) ? -1 : 1; }' ) );
 			return $this->email_subscriptions;
 		}
 		return false;
@@ -382,7 +423,7 @@ class sg_subscribe {
 
 
 	function solo_subscribe ($email, $postid) {
-		global $wpdb, $cache_userdata, $user_email;
+		global $wpdb, $cache_userdata, $user_email, $blog_id;
 		$postid = (int) $postid;
 		$email = strtolower($email);
 		if ( !is_email($email) ) {
@@ -396,14 +437,12 @@ class sg_subscribe {
 		if ( ( $email == $this->site_email && is_email($this->site_email) ) || ( $email == get_option('admin_email') && is_email(get_option('admin_email')) ) )
 			$this->add_error(__('This e-mail address may not be subscribed', 'subscribe-to-comments'),'solo_subscribe');
 
-		if ( is_array($this->subscriptions_from_email($email)) )
-			if (in_array($postid, (array) $this->subscriptions_from_email($email))) {
-				// already subscribed
-				setcookie('comment_author_email_' . COOKIEHASH, $email, time() + 30000000, COOKIEPATH);
-				$this->add_error(__('You appear to be already subscribed to this entry.', 'subscribe-to-comments'),'solo_subscribe');
-				}
-		$email = $wpdb->escape($email);
-		$post = $wpdb->get_row("SELECT * FROM $wpdb->posts WHERE ID = '$postid' AND comment_status <> 'closed' AND ( post_status = 'static' OR post_status = 'publish')  LIMIT 1");
+		if ( $this->is_subscribed_email_post_bid( $email, $postid, $blog_id ) ) {
+			// already subscribed
+			setcookie('comment_author_email_' . COOKIEHASH, $email, time() + 30000000, COOKIEPATH);
+			$this->add_error(__('You appear to be already subscribed to this entry.', 'subscribe-to-comments'),'solo_subscribe');
+		}
+		$post = get_post( $postid );
 
 		if ( !$post )
 			$this->add_error(__('Comments are not allowed on this entry.', 'subscribe-to-comments'),'solo_subscribe');
@@ -456,7 +495,11 @@ class sg_subscribe {
 			global $wpdb;
 			$comment = get_comment( $cid );
 	    	$email = strtolower( $comment->comment_author_email );
-			$proceed = !!$wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' AND LCASE(meta_value) = %s", $email ) );
+			if ( $this->is_wpmu() ) {
+				$proceed = !!$wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $this->wpmu_table WHERE email = %s AND status = 'active'", $email ) );
+			} else {
+				$proceed = !!$wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' AND LCASE(meta_value) = %s", $email ) );
+			}
 		} else {
 			$proceed = true;
 		}
@@ -471,35 +514,57 @@ class sg_subscribe {
 	}
 
 
-	function add_subscriber_by_post_id_and_email( $postid, $email ) {
-		$already_subscribed_to_this_post = in_array( $email, (array) get_post_meta( $postid, '_sg_subscribe-to-comments' ) );
-
-		if ( is_email( $email ) && !$already_subscribed_to_this_post )
-			add_post_meta( $postid, '_sg_subscribe-to-comments', strtolower( $email ) );
+	function add_subscriber_by_post_id_and_email( $postid, $email, $bid = NULL ) {
+		$email = strtolower( $email );
+		if ( $this->is_wpmu() ) {
+			global $wpdb, $blog_id;
+			$bid = ( NULL == $bid ) ? $blog_id : $bid;
+			$already_subscribed_to_this_post = !!$wpdb->get_var( $wpdb->prepare( "SELECT email FROM $this->wpmu_table WHERE email = %s AND blog_id = %d AND post_id = %d AND status = 'active'", $email, $bid, $postid ) );
+			if ( is_email( $email ) && !$already_subscribed_to_this_post )
+				$wpdb->insert( $this->wpmu_table, array( 'email' => $email, 'blog_id' => $bid, 'post_id' => $postid, 'status' => 'active' ) );
+		} else {
+			$already_subscribed_to_this_post = in_array( $email, (array) get_post_meta( $postid, '_sg_subscribe-to-comments' ) );
+			if ( is_email( $email ) && !$already_subscribed_to_this_post )
+				add_post_meta( $postid, '_sg_subscribe-to-comments', $email );
+		}
 	}
 
 
 	function add_subscriber( $cid ) {
+		global $blog_id;
 		$comment = get_comment( $cid );
     	$email = strtolower( $comment->comment_author_email );
 		$postid = $comment->comment_post_ID;
-		$this->add_subscriber_by_post_id_and_email( $postid, $email );
+		$this->add_subscriber_by_post_id_and_email( $postid, $email, $blog_id );
 		return $cid;
 	}
 
 
 	function add_pending_subscriber( $cid ) {
-		global $wpdb;
+		global $wpdb, $blog_id;
 		$comment = get_comment( $cid );
     	$email = strtolower( $comment->comment_author_email );
 		$postid = $comment->comment_post_ID;
-		$already_pending_on_this_post = in_array( $email, (array) get_post_meta( $postid, '_sg_subscribe-to-comments-pending' ) );
-		if ( is_email( $email ) && !$already_pending_on_this_post ) {
-			if ( !$wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->comments, $wpdb->postmeta WHERE comment_post_ID = post_id AND LCASE( meta_value ) = %s AND meta_key = '_sg_subscribe-to-comments-pending-with-email' AND comment_date_gmt > DATE_SUB( NOW(), INTERVAL 1 DAY)", $email ) ) ) {
-				add_post_meta( $postid, '_sg_subscribe-to-comments-pending-with-email', strtolower( $email ) );
-				$this->send_pending_nag( $cid );
-			} else {
-				add_post_meta( $postid, '_sg_subscribe-to-comments-pending', strtolower( $email ) );
+
+		if ( $this->is_wpmu() ) {
+			$already_pending_on_this_post = !!$wpdb->get_var( $wpdb->prepare( "SELECT email FROM $this->wpmu_table WHERE email = %s AND blog_id = %d AND post_id = %d AND status = 'pending'", $email, $blog_id, $postid ) );
+			if ( is_email( $email ) && !$already_pending_on_this_post ) {
+				if ( !$wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $this->wpmu_table WHERE email = %s AND status = 'pending-with-email' AND date_gmt > DATE_SUB( NOW(), INTERVAL 1 DAY)", $email ) ) ) {
+					$wpdb->insert( $this->wpmu_table, array( 'email' => $email, 'blog_id' => $blog_id, 'post_id' => $postid, 'status' => 'pending-with-email', 'date_gmt' => current_time('mysql', 1) ) );
+					$this->send_pending_nag( $cid );
+				} else {
+					$wpdb->insert( $this->wpmu_table, array( 'email' => $email, 'blog_id' => $blog_id, 'post_id' => $postid, 'status' => 'pending', 'date_gmt' => current_time('mysql', 1) ) );
+				}
+			}
+		} else {
+			$already_pending_on_this_post = in_array( $email, (array) get_post_meta( $postid, '_sg_subscribe-to-comments-pending' ) );
+			if ( is_email( $email ) && !$already_pending_on_this_post ) {
+				if ( !$wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->comments, $wpdb->postmeta WHERE comment_post_ID = post_id AND LCASE( meta_value ) = %s AND meta_key = '_sg_subscribe-to-comments-pending-with-email' AND comment_date_gmt > DATE_SUB( NOW(), INTERVAL 1 DAY)", $email ) ) ) {
+					add_post_meta( $postid, '_sg_subscribe-to-comments-pending-with-email', strtolower( $email ) );
+					$this->send_pending_nag( $cid );
+				} else {
+					add_post_meta( $postid, '_sg_subscribe-to-comments-pending', strtolower( $email ) );
+				}
 			}
 		}
 		return $cid;
@@ -507,15 +572,19 @@ class sg_subscribe {
 
 
 	function confirm_pending_subscriber( $email ) {
-		global $wpdb;
+		global $wpdb, $blog_id;
     	$email = strtolower( $email );
 
-		$pending = $wpdb->get_results( $wpdb->prepare( "SELECT post_id, meta_key FROM $wpdb->postmeta WHERE LCASE(meta_value) = %s AND meta_key IN( '_sg_subscribe-to-comments-pending', '_sg_subscribe-to-comments-pending-with-email' )", $email ) );
-
-		foreach ( (array) $pending as $p ) {
-			$this->add_subscriber_by_post_id_and_email( $p->post_id, $email );
-			delete_post_meta( $p->post_id, $p->meta_key, $email );
+		if ( $this->is_wpmu() ) {
+			$wpdb->update( $this->wpmu_table, array( 'status' => 'active' ), array( 'email' => $email ) );
+		} else {
+			$pending = $wpdb->get_results( $wpdb->prepare( "SELECT post_id, meta_key FROM $wpdb->postmeta WHERE LCASE(meta_value) = %s AND meta_key IN( '_sg_subscribe-to-comments-pending', '_sg_subscribe-to-comments-pending-with-email' )", $email ) );
+			foreach ( (array) $pending as $p ) {
+				$this->add_subscriber_by_post_id_and_email( $p->post_id, $email, $blog_id );
+				delete_post_meta( $p->post_id, $p->meta_key, $email );
+			}
 		}
+
 		return !!count($pending);
 	}
 
@@ -665,33 +734,40 @@ class sg_subscribe {
 	}
 
 
-	function remove_subscriber($email, $postid) {
-		global $wpdb;
+	function remove_subscriber( $email, $postid, $bid = NULL ) {
+		global $wpdb, $blog_id;
 		$postid = (int) $postid;
-		$email = strtolower($email);
-		$email_sql = $wpdb->escape($email);
+		$bid = absint( ( NULL == $bid ) ? $blog_id : $bid );
+		$email = strtolower( $email );
 
-		if ( delete_post_meta($postid, '_sg_subscribe-to-comments', $email) || delete_post_meta($postid, '_sg_subscribe-to-comments-pending-with-email', $email) || delete_post_meta($postid, '_sg_subscribe-to-comments-pending', $email) )
+		if ( $this->is_wpmu() ) {
+			echo "REMOVING $bid : $postid : $email";
+			if ( $wpdb->query( $wpdb->prepare( "DELETE FROM $this->wpmu_table WHERE email = %s AND post_id = %d AND blog_id = %d", $email, $postid, $bid ) ) )
+				return true;
+		} else {
+			if ( delete_post_meta($postid, '_sg_subscribe-to-comments', $email) || delete_post_meta($postid, '_sg_subscribe-to-comments-pending-with-email', $email) || delete_post_meta($postid, '_sg_subscribe-to-comments-pending', $email) )
 			return true;
-		else
+		}
 			return false;
 		}
 
 
-	function remove_subscriptions ($postids) {
+	function remove_subscriptions ( $bid_post_ids ) {
 		global $wpdb;
 		$removed = 0;
-		for ($i = 0; $i < count($postids); $i++) {
-			if ( $this->remove_subscriber($this->email, $postids[$i]) )
+		foreach ( $bid_post_ids as $bp ) {
+			$bp = explode( '-', $bp );
+			// echo 'Removing BID: ' . $bp[0] . ' PID:' . $bp[1];
+			if ( $this->remove_subscriber($this->email, $bp[1], $bp[0] ) )
 				$removed++;
 		}
 		return $removed;
 	}
 
 
-	function send_notifications($cid) {
+	function send_notifications( $cid ) {
 		global $wpdb;
-		$comment = get_comment( $cid );
+		$comment =& get_comment( $cid );
 		$post = get_post( $comment->comment_post_ID );
 
 		if ( $comment->comment_approved == '1' && $comment->comment_type == '' ) {
@@ -722,7 +798,7 @@ class sg_subscribe {
 
 
 	function send_pending_nag( $cid ) {
-		$comment = &get_comment( $cid );
+		$comment =& get_comment( $cid );
 		$email = strtolower( $comment->comment_author_email );
 		$subject = __('Subscription Confirmation', 'subscribe-to-comments');
 		$message = sprintf(__("You are receiving this message to confirm your comment subscription at \"%s\"\n\n", 'subscribe-to-comments'), get_bloginfo('blogname'));
@@ -775,24 +851,33 @@ class sg_subscribe {
 
 	function change_email() {
 		global $wpdb;
-		$new_email = $wpdb->escape(strtolower($this->new_email));
-		$email = $wpdb->escape(strtolower($this->email));
-		if ( $wpdb->query("UPDATE $wpdb->comments SET comment_author_email = '$new_email' WHERE comment_author_email = '$email'") )
+		$new_email = strtolower( $this->new_email );
+		$email = strtolower( $this->email );
+		if ( $wpdb->update( $wpdb->comments, array( 'comment_author_email' => $new_email ), array( 'comment_author_email' => $email ) ) )
 			$return = true;
-		if ( $wpdb->query("UPDATE $wpdb->postmeta SET meta_value = '$new_email' WHERE meta_value = '$email' AND meta_key = '_sg_subscribe-to-comments'") )
+		if ( $wpdb->update( $wpdb->postmeta, array( 'meta_value' => $new_email ), array( 'meta_value' => $email, 'meta_key' => '_sg_subscribe-to-comments' ) ) )
+			$return = true;
+		if ( $wpdb->update( $this->wpmu_table, array( 'email' => $new_email ), array( 'email' => $email ) ) )
 			$return = true;
 		return $return;
 	}
 
 
-	function entry_link($postid, $uri='') {
+	function entry_link( $bid, $postid, $uri='') {
+		global $blog_id;
+		if ( $blog_id != $bid ) {
+			$switched = true;
+			switch_to_blog( $bid );
+		}
 		if ( empty($uri) )
-			$uri = get_permalink($postid);
+			$uri = clean_url( get_permalink( $postid ) );
 		$postid = (int) $postid;
 		$title = get_the_title($postid);
 		if ( empty($title) )
 			$title = __('click here', 'subscribe-to-comments');
-		$output = '<a href="'.$uri.'">'.$title.'</a>';
+		$output = '<a href="'.$uri.'">'. wp_specialchars( get_option( 'blogname' ) ) . ' &rarr; ' . $title.'</a>';
+		if ( $switched )
+			restore_current_blog();
 		return $output;
 	}
 
@@ -810,10 +895,10 @@ class sg_subscribe {
 
 
 	function db_upgrade_check () {
-		global $wpdb;
+		global $wpdb, $blog_id;
 
 		// add the options
-		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments'), 'version' => $this->version, 'double_opt_in' => '', 'subscribed_format' => '%NAME%'));
+		add_option('sg_subscribe_settings', array('use_custom_style' => '', 'email' => get_bloginfo('admin_email'), 'name' => get_bloginfo('name'), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'not_subscribed_text' => __('Notify me of followup comments via e-mail', 'subscribe-to-comments'), 'subscribed_text' => __('You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments'), 'author_text' => __('You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments'), 'version' => 0, 'double_opt_in' => '', 'subscribed_format' => '%NAME%'));
 
 		$settings = get_option('sg_subscribe_settings');
 
@@ -848,21 +933,44 @@ class sg_subscribe {
 			exit;
 		}
 
-		if ( version_compare( $settings['version'], '2.2', '<' ) ) { // Upgrade to postmeta-driven subscriptions
+		if ( !$this->is_wpmu() && version_compare( $settings['version'], '2.2', '<' ) ) { // Upgrade to postmeta-driven subscriptions
 			foreach ( (array) $wpdb->get_col("DESC $wpdb->comments", 0) as $column ) {
 				if ( $column == 'comment_subscribe' ) {
 					$upgrade_comments = $wpdb->get_results( "SELECT comment_post_ID, comment_author_email FROM $wpdb->comments WHERE comment_subscribe = 'Y'" );
 					foreach ( (array) $upgrade_comments as $upgrade_comment )
-						$this->add_subscriber_by_post_id_and_email( $upgrade_comment->comment_post_ID, $upgrade_comment->comment_author_email );
+						$this->add_subscriber_by_post_id_and_email( $upgrade_comment->comment_post_ID, $upgrade_comment->comment_author_email, $blog_id );
 					// Done. Drop the column
 					$wpdb->query("ALTER TABLE $wpdb->comments DROP COLUMN comment_subscribe");
 				}
 			}
 			$udpate = true;
+		} 
+
+		elseif ( $this->is_wpmu() && ( version_compare( $settings['version'], '2.2', '<' ) || !isset( $settings['version'] ) ) ) {
+			// Create WPMU tables
+			if ( $wpdb->has_cap( 'collation' ) ) {
+				if ( ! empty($wpdb->charset) )
+					$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
+				if ( ! empty($wpdb->collate) )
+					$charset_collate .= " COLLATE $wpdb->collate";
+			}
+			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+			$queries = "CREATE TABLE IF NOT EXISTS $this->wpmu_table (
+				id int(11) NOT NULL auto_increment,
+				email varchar(100) NOT NULL,
+				blog_id int(11) NOT NULL default 0,
+				post_id int(11) NOT NULL default 0,
+				date_gmt datetime NOT NULL default '0000-00-00 00:00:00',
+				status varchar(20) NOT NULL default '',
+				PRIMARY KEY  (id),
+				KEY email_blog_post_status (email,blog_id,post_id,status),
+				KEY email_status (email,status)
+			) $charset_collate";
+			dbDelta( $queries );
 		}
 
-		if ( $update )
-			$this->update_settings($settings);
+		if ( $update || !isset( $settings['version'] ) )
+			$this->update_settings( $settings );
 	}
 
 
@@ -875,7 +983,7 @@ class sg_subscribe {
 
 
 	function current_viewer_subscription_status(){
-		global $wpdb, $post, $user_email;
+		global $wpdb, $post, $user_email, $blog_id;
 
 		$comment_author_email = ( isset($_COOKIE['comment_author_email_'. COOKIEHASH]) ) ? trim($_COOKIE['comment_author_email_'. COOKIEHASH]) : '';
 		get_currentuserinfo();
@@ -893,9 +1001,8 @@ class sg_subscribe {
 		if ( strtolower($post_author->user_email) == $email && $loggedin )
 			return 'admin';
 
-		if ( is_array($this->subscriptions_from_email($email)) )
-			if ( in_array($post->ID, (array) $this->email_subscriptions) )
-				return $email;
+		if ( in_array( $email, (array) $this->subscriptions_from_post( $post->ID ) ) )
+			return $email;
 		return false;
 	}
 
@@ -916,21 +1023,23 @@ class sg_subscribe {
 	}
 
 
-	function on_edit($cid) {
-		$comment = &get_comment($cid);
+	function on_edit( $cid ) {
+		global $blog_id;
+		$comment =& get_comment( $cid );
 		$email = strtolower( $comment->comment_author_email );
 		$postid = $comment->comment_post_ID;
 		if ( !is_email( $email ) )
-			sg_subscribe::remove_subscriber( $email, $postid );
+			sg_subscribe::remove_subscriber( $email, $postid, $blog_id );
 		return $cid;
 	}
 
 
 	function on_delete($cid) {
+		global $blog_id;
 		$comment = &get_comment($cid);
 		$email = strtolower( $comment->comment_author_email );
 		$postid = $comment->comment_post_ID;
-		sg_subscribe::remove_subscriber( $email, $postid );
+		sg_subscribe::remove_subscriber( $email, $postid, $blog_id );
 		return $cid;
 	}
 
@@ -1016,9 +1125,8 @@ if ( isset( $_REQUEST['wp-subscription-manager'] ) )
 function sg_subscribe_admin_standalone() {
 	sg_subscribe_admin( true );
 }
-
 function sg_subscribe_admin($standalone = false) {
-	global $wpdb, $sg_subscribe, $wp_version;
+	global $wpdb, $sg_subscribe, $wp_version, $blog_id;
 
 	sg_subscribe_start();
 
@@ -1086,7 +1194,7 @@ function sg_subscribe_admin($standalone = false) {
 			break;
 
 		case "solo_subscribe" :
-			$sg_subscribe->add_message(sprintf(__('<strong>%1$s</strong> has been successfully subscribed to %2$s', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->entry_link($_GET['subscribeid'])));
+			$sg_subscribe->add_message(sprintf(__('<strong>%1$s</strong> has been successfully subscribed to %2$s', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->entry_link( $blog_id, $_GET['subscribeid'])));
 			break;
 
 		case "block" :
@@ -1135,7 +1243,7 @@ function sg_subscribe_admin($standalone = false) {
 	<h2><?php _e( 'Comment Subscription Manager', 'subscribe-to-comments' ); ?></h2>
 
 	<?php if ( !empty( $sg_subscribe->ref ) ) : ?>
-	<?php $sg_subscribe->add_message( sprintf( __( 'Return to the page you were viewing: %s', 'subscribe-to-comments' ), $sg_subscribe->entry_link( url_to_postid( $sg_subscribe->ref ), $sg_subscribe->ref ) ) ); ?>
+	<?php $sg_subscribe->add_message( sprintf( __( 'Return to the page you were viewing: %s', 'subscribe-to-comments' ), $sg_subscribe->entry_link( $blog_id, url_to_postid( $sg_subscribe->ref ), $sg_subscribe->ref ) ) ); ?>
 	<?php $sg_subscribe->show_messages(); ?>
 	<?php endif; ?>
 
@@ -1220,7 +1328,11 @@ function sg_subscribe_admin($standalone = false) {
 
 <?php
 			$stc_limit = ( !$_REQUEST['showallsubscribers'] ) ? 'LIMIT 25' : '';
-			$all_pm_subscriptions = $wpdb->get_results("SELECT distinct LCASE(meta_value) as email, count(post_id) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY email ORDER BY ccount DESC $stc_limit");
+			if ( $sg_subscribe->is_wpmu() ) {
+				$all_pm_subscriptions = $wpdb->get_results("SELECT DISTINCT email, count(post_id) as ccount FROM $sg_subscribe->wpmu_table WHERE status = 'active' GROUP BY email ORDER BY ccount DESC $stc_limit");
+			} else {
+				$all_pm_subscriptions = $wpdb->get_results("SELECT DISTINCT LCASE(meta_value) as email, count(post_id) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY email ORDER BY ccount DESC $stc_limit");
+			}
 			$all_subscriptions = array();
 
 			foreach ( (array) $all_pm_subscriptions as $sub ) {
@@ -1252,7 +1364,11 @@ if ( !$_REQUEST['showallsubscribers'] ) : ?>
 ?>
 				<h3><?php _e('Top Subscribed Posts', 'subscribe-to-comments'); ?></h3>
 				<?php
-				$top_subscribed_posts = $wpdb->get_results("SELECT distinct post_id, count(distinct meta_value) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
+				if ( $sg_subscribe->is_wpmu() ) {
+					$top_subscribed_posts = $wpdb->get_results( $wpdb->prepare( "SELECT DISTINCT post_id, count( distinct post_id ) as ccount FROM $sg_subscribe->wpmu_table WHERE status = 'active' AND blog_id = %s ORDER BY ccount DEST LIMIT 25", $blog_id ) );
+				} else {
+					$top_subscribed_posts = $wpdb->get_results("SELECT DISTINCT post_id, count(distinct meta_value) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
+				}
 				$all_top_posts = array();
 
 				foreach ( (array) $top_subscribed_posts as $pid ) {
@@ -1306,8 +1422,9 @@ function checkAll(form) {
 	<?php $sg_subscribe->hidden_form_fields(); ?>
 
 				<ol>
-				<?php for ($i = 0; $i < count($postlist); $i++) { ?>
-					<li><label for="subscrip-<?php echo $i; ?>"><input id="subscrip-<?php echo $i; ?>" type="checkbox" name="subscrips[]" value="<?php echo $postlist[$i]; ?>" /> <?php echo $sg_subscribe->entry_link($postlist[$i]); ?></label></li>
+				<?php $i = 0;
+				foreach ( $postlist as $pl ) { $i++; ?>
+					<li><label for="subscrip-<?php echo $i; ?>"><input id="subscrip-<?php echo $i; ?>" type="checkbox" name="subscrips[]" value="<?php echo $pl[0] .'-'. $pl[1]; ?>" /> <?php echo $sg_subscribe->entry_link($pl[0], $pl[1]); ?></label></li>
 				<?php } ?>
 				</ol>
 
@@ -1382,4 +1499,4 @@ function checkAll(form) {
 
 
 <?php die(); // stop WP from loading ?>
-<?php } ?>
+<?php }
