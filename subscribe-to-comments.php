@@ -3,108 +3,99 @@
 Plugin Name: Subscribe To Comments
 Version: 2.3-bleeding
 Plugin URI: http://txfx.net/wordpress-plugins/subscribe-to-comments/
-Description: Allows readers to receive notifications of new comments that are posted to an entry.  Based on version 1 from <a href="http://scriptygoddess.com/">Scriptygoddess</a>
+Description: Allows readers to choose to receive notifications of new comments that are posted to an entry.
 Author: Mark Jaquith
 Author URI: http://coveredwebservices.com/
 */
 
-/* This is the code that is inserted into the comment form */
-function show_subscription_checkbox ($id='0') {
-	global $sg_subscribe;
-	sg_subscribe_start();
 
-	if ( $sg_subscribe->checkbox_shown ) return $id;
-	if ( !$email = $sg_subscribe->current_viewer_subscription_status() ) :
+
+
+
+
+/**
+ * Returns the CWS_STC singleton object
+ * @return CWS_STC the instantiated CWS_STC object
+ */
+function _stc() {
+	global $_cws_stc, $sg_subscribe;
+	if ( !isset( $_cws_stc ) || !is_object( $_cws_stc ) ) {
+		/**
+		 * @global CWS_STC $_cws_stc
+		 */
+		$_cws_stc = new CWS_STC;
+		/**
+		 * @global CWS_STC $sg_subscribe
+		 * @deprecated
+		 */
+		$sg_subscribe &= $_cws_stc; // Backwards compat
+	}
+	return $_cws_stc;
+}
+
+/* This is the code that is inserted into the comment form */
+function show_subscription_checkbox( $id='0' ) {
+
+	if ( _stc()->checkbox_shown )
+		return $id;
+	if ( !$email = _stc()->current_viewer_subscription_status() ) :
 		$checked_status = ( !empty($_COOKIE['subscribe_checkbox_'.COOKIEHASH]) && 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
 	?>
 
-<?php /* ------------------------------------------------------------------- */ ?>
-<?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
-<?php /* ------------------------------------------------------------------- */ ?>
-
-	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
+	<p <?php if (_stc()->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
 	<input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ( $checked_status ) echo 'checked="checked" '; ?>/>
-	<label for="subscribe"><?php echo $sg_subscribe->not_subscribed_text; ?></label>
+	<label for="subscribe"><?php echo _stc()->not_subscribed_text; ?></label>
 	</p>
-
-<?php /* ------------------------------------------------------------------- */ ?>
 
 <?php elseif ( $email == 'admin' && current_user_can('manage_options') ) : ?>
 
-<?php /* ------------------------------------------------------------- */ ?>
-<?php /* This is the text that is displayed for the author of the post */ ?>
-<?php /* ------------------------------------------------------------- */ ?>
-
-	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
-	<?php echo str_replace('[manager_link]', $sg_subscribe->manage_link($email, true, false), $sg_subscribe->author_text); ?>
+	<p <?php if (_stc()->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
+	<?php echo str_replace('[manager_link]', _stc()->manage_link($email, true, false), _stc()->author_text); ?>
 	</p>
 
 <?php else : ?>
 
-<?php /* --------------------------------------------------------------- */ ?>
-<?php /* This is the text that is displayed for users who ARE subscribed */ ?>
-<?php /* --------------------------------------------------------------- */ ?>
-
-	<p <?php if ($sg_subscribe->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
-	<?php echo str_replace('[manager_link]', $sg_subscribe->manage_link($email, true, false), $sg_subscribe->subscribed_text); ?>
+	<p <?php if (_stc()->clear_both) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
+	<?php echo str_replace('[manager_link]', _stc()->manage_link($email, true, false), _stc()->subscribed_text); ?>
 	</p>
-
-<?php /* --------------------------------------------------------------- */ ?>
 
 <?php endif;
 
-$sg_subscribe->checkbox_shown = true;
+_stc()->checkbox_shown = true;
 return $id;
 }
 
-
-
-/* -------------------------------------------------------------------- */
-/* This function outputs a "subscribe without commenting" form.         */
-/* Place this somewhere within "the loop", but NOT within another form  */
-/* This is NOT inserted automaticallly... you must place it yourself    */
-/* -------------------------------------------------------------------- */
 function show_manual_subscription_form() {
 	global $id, $sg_subscribe, $user_email;
-	sg_subscribe_start();
-	$sg_subscribe->show_errors('solo_subscribe', '<div class="solo-subscribe-errors">', '</div>', __('<strong>Error: </strong>', 'subscribe-to-comments'), '<br />');
+		_stc()->show_errors('solo_subscribe', '<div class="solo-subscribe-errors">', '</div>', __('<strong>Error: </strong>', 'subscribe-to-comments'), '<br />');
 
-if ( !$sg_subscribe->current_viewer_subscription_status() ) :
+if ( !_stc()->current_viewer_subscription_status() ) :
 	get_currentuserinfo(); ?>
-
-<?php /* ------------------------------------------------------------------- */ ?>
-<?php /* This is the text that is displayed for users who are NOT subscribed */ ?>
-<?php /* ------------------------------------------------------------------- */ ?>
 
 	<form action="" method="post">
 	<input type="hidden" name="solo-comment-subscribe" value="solo-comment-subscribe" />
-	<input type="hidden" name="postid" value="<?php echo (int) $id; ?>" />
-	<input type="hidden" name="ref" value="<?php echo urlencode('http://' . $_SERVER['HTTP_HOST'] . attribute_escape($_SERVER['REQUEST_URI'])); ?>" />
+	<input type="hidden" name="postid" value="<?php echo absint( $id ); ?>" />
+	<input type="hidden" name="ref" value="<?php echo esc_url( 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] ); ?>" />
 
 	<p class="solo-subscribe-to-comments">
 	<?php _e('Subscribe without commenting', 'subscribe-to-comments'); ?>
 	<br />
 	<label for="solo-subscribe-email"><?php _e('E-Mail:', 'subscribe-to-comments'); ?>
-	<input type="text" name="email" id="solo-subscribe-email" size="22" value="<?php echo attribute_escape( $user_email ); ?>" /></label>
+	<input type="text" name="email" id="solo-subscribe-email" size="22" value="<?php echo esc_attr( $user_email ); ?>" /></label>
 	<input type="submit" name="submit" value="<?php _e( 'Subscribe', 'subscribe-to-comments' ); ?>" />
 	</p>
 	</form>
 
-<?php /* ------------------------------------------------------------------- */ ?>
-
 <?php endif;
 }
 
-
-
-/* -------------------------
-Use this function on your comments display - to show whether a user is subscribed to comments on the post or not.
-Note: this must be used within the comments loop!  It will not work properly outside of it.
-------------------------- */
+/**
+ * Returns the subscription status of the current comment in the comments loop
+ * @return bool
+ */
 function comment_subscription_status() {
-	global $comment, $sg_subscribe;
-	sg_subscribe_start();
-	return !!$sg_subscribe->is_subscribed( $comment->comment_ID );
+	global $comment;
+	return !!_stc()->is_subscribed( $comment->comment_ID );
 }
 
 
@@ -120,121 +111,12 @@ function comment_subscription_status() {
 
 
 
-/* ============================= */
-/* DO NOT MODIFY BELOW THIS LINE */
-/* ============================= */
-
-class sg_subscribe_settings {
-
-	function tr( $option_slug, $option_title, $option_text, $description ='' ) {
-		echo "<tr valign='top'>\n\t<th scope='row'><label for='" . $option_slug . "'>" . $option_title . "</label></th>\n\t<td>" . $option_text;
-		if ( !empty( $description ) )
-			echo '<span class="setting-description">' . $description . '</span>';
-		echo "</td>\n</tr>\n";
-	}
-
-	function options_page_contents() {
-		global $sg_subscribe;
-		sg_subscribe_start();
-		if ( isset($_POST['sg_subscribe_settings_submit']) ) {
-			check_admin_referer('subscribe-to-comments-update_options');
-			$update_settings = stripslashes_deep($_POST['sg_subscribe_settings']);
-			$sg_subscribe->update_settings($update_settings);
-		}
-
-		echo '<h2>' . __( 'Subscribe to Comments Settings', 'subscribe-to-comments' ) . '</h2>';
-
-
-		echo '<h3>' . __( 'Notification e-mails', 'subscribe-to-comments' ) . '</h3>';
-		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'name', __( '"From" name', 'subscribe-to-comments' ), '<input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . sg_subscribe_settings::form_setting('name') . '" />' );
-		sg_subscribe_settings::tr( 'email', __( '"From" address', 'subscribe-to-comments' ), '<input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . sg_subscribe_settings::form_setting('email') . '" />', __( 'You may want this to be a special account that you set up for this purpose, as it will go out to everyone who subscribes', 'subscribe-to-comments' ) );
-		sg_subscribe_settings::tr( 'double_opt_in', __( 'Double opt-in', 'subscribe-to-comments' ), '<input type="checkbox" id="double_opt_in" name="sg_subscribe_settings[double_opt_in]" value="double_opt_in"' . sg_subscribe_settings::checkflag('double_opt_in') . ' /> <label for="double_opt_in">' . __( 'Require verification of first-time subscription e-mails (this is known as "double opt-in" and is required by law in some countries)', 'subscribe-to-comments') . '</label>' );
-		echo '</table>';
-
-		echo '<h3>' . __('Subscriber name formatting', 'subscribe_to_comments') . '</h3>';
-		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'subscribed_format', __( 'Subscribed format', 'subscribe-to-comments' ), '<input type="text" size="40" id="subscribed_format" name="sg_subscribe_settings[subscribed_format]" value="' . sg_subscribe_settings::form_setting('subscribed_format') . '" />', __( 'e.g. <code>%NAME% (subscribed)</code> will display <code>John Smith (subscribed)</code>', 'subscribe-to-comments' ) );
-		echo '</table>';
-
-
-		echo '<h3>' . __('Comment form layout') . '</h3>';
-		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'clear_both', 'CSS clearing', '<input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . sg_subscribe_settings::checkflag('clear_both') . ' /> <label for="clear_both">' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label>' );
-		echo '</table>';
-
-		echo '<h3>' . __('Comment form text', 'subscribe-to-comments') . '</h3>';
-		echo '<p>' . __('Customize the messages shown to different people.  Use <code>[manager_link]</code> to insert the URI to the Subscription Manager.', 'subscribe-to-comments') . '</p>';
-		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'not_subscribed_text', __( 'Not subscribed text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="not_subscribed_text" name="sg_subscribe_settings[not_subscribed_text]">' . sg_subscribe_settings::textarea_setting('not_subscribed_text') . '</textarea>' );
-		sg_subscribe_settings::tr( 'subscribed_text', __( 'Subscribed text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="subscribed_text" name="sg_subscribe_settings[subscribed_text]">' . sg_subscribe_settings::textarea_setting('subscribed_text') . '</textarea>' );
-		sg_subscribe_settings::tr( 'author_text', __( 'Entry author text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="author_text" name="sg_subscribe_settings[author_text]">' . sg_subscribe_settings::textarea_setting('author_text') . '</textarea>' );
-		echo '</table>';
-
-		echo '<h3>' . __('Subscription manager', 'subscribe-to-comments') . '</h3>';
-		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'use_custom_style', __( 'Custom style', 'subscribe-to-comments' ), '<input type="checkbox" onchange="if(this.checked){document.getElementById(\'stc-custom-style-div\').style.display=\'block\';}else{document.getElementById(\'stc-custom-style-div\').style.display=\'none\';}" id="use_custom_style" name="sg_subscribe_settings[use_custom_style]" value="use_custom_style"' . sg_subscribe_settings::checkflag('use_custom_style') . ' /> <label for="use_custom_style">' . __('Use custom style for Subscription Manager', 'subscribe-to-comments') . '</label>' );
-		echo '</table>';
-
-		echo '<div id="stc-custom-style-div" style="' . ( ( sg_subscribe_settings::form_setting('use_custom_style') != 'use_custom_style' ) ? 'display:none' : '' ) . '">';
-		echo '<p>' . __( 'These settings only matter if you are using a custom style.  <code>[theme_path]</code> will be replaced with the path to your current theme.', 'subscribe-to-comments' ) . '</p>';
-		echo '<table class="form-table">';
-		sg_subscribe_settings::tr( 'header', __( 'Path to header', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_header" name="sg_subscribe_settings[header]" value="' . sg_subscribe_settings::form_setting('header') . '" />' );
-		sg_subscribe_settings::tr( 'sidebar', __( 'Path to sidebar', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_sidebar" name="sg_subscribe_settings[sidebar]" value="' . sg_subscribe_settings::form_setting('sidebar') . '" />' );
-		sg_subscribe_settings::tr( 'footer', __( 'Path to footer', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_footer" name="sg_subscribe_settings[footer]" value="' . sg_subscribe_settings::form_setting('footer') . '" />' );
-		sg_subscribe_settings::tr( 'before_manager', __( 'HTML for before the subscription manager', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="before_manager" name="sg_subscribe_settings[before_manager]">' . sg_subscribe_settings::textarea_setting('before_manager') . '</textarea>' );
-		sg_subscribe_settings::tr( 'after_manager', __( 'HTML for after the subscription manager', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="after_manager" name="sg_subscribe_settings[after_manager]">' . sg_subscribe_settings::textarea_setting('after_manager') . '</textarea>' );
-		echo '</table>';
-		echo '</div>';
-	}
-
-	function checkflag($optname) {
-		$options = get_option('sg_subscribe_settings');
-		if ( $options[$optname] != $optname )
-			return;
-		return ' checked="checked"';
-	}
-
-	function form_setting($optname) {
-		$options = get_option('sg_subscribe_settings');
-		return attribute_escape($options[$optname]);
-	}
-
-	function textarea_setting($optname) {
-		$options = get_option('sg_subscribe_settings');
-		return wp_specialchars($options[$optname]);
-	}
-
-	function options_page() {
-		/** Display "saved" notification on post **/
-		if ( isset($_POST['sg_subscribe_settings_submit']) )
-			echo '<div class="updated"><p><strong>' . __('Settings saved.', 'subscribe-to-comments') . '</strong></p></div>';
-
-		echo '<form method="post">';
-		screen_icon();
-		echo '<div class="wrap">';
-
-		sg_subscribe_settings::options_page_contents();
-
-	  echo '<p class="submit"><input type="submit" name="sg_subscribe_settings_submit" value="';
-	  _e('Save Changes', 'subscribe-to-comments');
-	  echo '" class="button-primary" /></p></div>';
-
-		if ( function_exists('wp_nonce_field') )
-			wp_nonce_field('subscribe-to-comments-update_options');
-
-		echo '</form>';
-	}
-
-}
 
 
 
 
 
-
-
-class sg_subscribe {
+class CWS_STC {
 	var $errors;
 	var $messages;
 	var $bid_post_subscriptions;
@@ -269,12 +151,17 @@ class sg_subscribe {
 	var $is_multisite;
 	var $ms_table;
 
-	function sg_subscribe() {
+	function __construct() {
 		global $wpdb;
-		$this->is_multisite = ( $wpdb->prefix != $wpdb->base_prefix );
+		// Multisite code is disabled. It exists so that adventurous blog networks can play with it they like.
+		// IT IS NOT SUPPORTED. IT MAY BURN YOUR HOUSE DOWN.
+		$this->is_multisite = defined( 'STC_MULTISITE' ) && STC_MULTISITE;
 		if ( $this->is_multisite() )
 			$this->ms_table = $wpdb->base_prefix . 'comment_subscriptions';
 		$this->db_upgrade_check();
+
+		add_action( 'admin_init', array( &$this, 'admin_init' ) );
+		register_uninstall_hook( __FILE__, array( &$this, 'uninstall' ) );
 
 		$this->settings = get_option('sg_subscribe_settings');
 
@@ -294,6 +181,44 @@ class sg_subscribe {
 		$this->email_subscriptions = '';
 	}
 
+	/**
+	 * PHP 4 constructor
+	 */
+	function CWS_STC() {
+		return $this->__construct();
+	}
+
+	function uninstall() {
+		delete_option( 'sg_subscribe_settings' );
+	}
+
+	function admin_init() {
+		// menu_page_url() was introduced in WP 3.0
+		if ( !function_exists( 'menu_page_url' ) ) :
+
+		function menu_page_url($menu_slug, $echo = true) {
+			global $_parent_pages;
+
+			if ( isset( $_parent_pages[$menu_slug] ) ) {
+				if ( $_parent_pages[$menu_slug] ) {
+					$url = admin_url( add_query_arg( 'page', $menu_slug, $_parent_pages[$menu_slug] ) );
+				} else {
+					$url = admin_url('admin.php?page=' . $menu_slug);
+				}
+			} else {
+				$url = '';
+			}
+
+			$url = esc_url($url);
+
+			if ( $echo )
+				echo $url;
+
+			return $url;
+		}
+		endif;
+
+	}
 
 	function manager_init() {
 		$this->messages = '';
@@ -308,7 +233,7 @@ class sg_subscribe {
 
 		foreach ( array('email', 'key', 'ref', 'new_email') as $var )
 			if ( isset($_REQUEST[$var]) && !empty($_REQUEST[$var]) )
-				$this->{$var} = attribute_escape(trim(stripslashes($_REQUEST[$var])));
+				$this->{$var} = esc_attr(trim(stripslashes($_REQUEST[$var])));
 		if ( !$this->key )
 			$this->key = 'unset';
 	}
@@ -362,12 +287,11 @@ class sg_subscribe {
 
 
 	function subscriptions_from_post($postid, $bid=NULL) {
-		global $blog_id, $wpdb;
+		global $wpdb, $blog_id;
 		if ( NULL == $bid )
 			$bid = $blog_id;
 		if ( is_array($this->bid_post_subscriptions[$bid][$postid]) )
 			return $this->bid_post_subscriptions[$bid][$postid];
-		global $wpdb;
 		$postid = (int) $postid;
 		if ( $this->is_multisite() ) {
 			$this->bid_post_subscriptions[$bid][$postid] = (array) $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT email FROM $this->ms_table WHERE blog_id = %d AND post_id = %d", $bid, $postid ) );
@@ -399,11 +323,11 @@ class sg_subscribe {
 
 
 	function subscriptions_from_email($email='') {
+		global $wpdb, $blog_id;
 		if ( is_array($this->email_subscriptions) )
 			return $this->email_subscriptions;
 		if ( !is_email($email) )
 			$email = $this->email;
-		global $wpdb, $blog_id;
 		$email = strtolower( $email );
 
 		if ( $this->is_multisite() ) {
@@ -423,7 +347,7 @@ class sg_subscribe {
 
 
 	function solo_subscribe ($email, $postid) {
-		global $wpdb, $cache_userdata, $user_email, $blog_id;
+		global $wpdb, $blog_id, $cache_userdata, $user_email;
 		$postid = (int) $postid;
 		$email = strtolower($email);
 		if ( !is_email($email) ) {
@@ -491,8 +415,8 @@ class sg_subscribe {
 
 
 	function maybe_add_subscriber( $cid ) {
+		global $wpdb;
 		if ( $this->settings['double_opt_in'] ) {
-			global $wpdb;
 			$comment = get_comment( $cid );
 	    	$email = strtolower( $comment->comment_author_email );
 			if ( $this->is_multisite() ) {
@@ -515,9 +439,9 @@ class sg_subscribe {
 
 
 	function add_subscriber_by_post_id_and_email( $postid, $email, $bid = NULL ) {
+		global $wpdb, $blog_id;
 		$email = strtolower( $email );
 		if ( $this->is_multisite() ) {
-			global $wpdb, $blog_id;
 			$bid = ( NULL == $bid ) ? $blog_id : $bid;
 			$already_subscribed_to_this_post = !!$wpdb->get_var( $wpdb->prepare( "SELECT email FROM $this->ms_table WHERE email = %s AND blog_id = %d AND post_id = %d AND status = 'active'", $email, $bid, $postid ) );
 			if ( is_email( $email ) && !$already_subscribed_to_this_post )
@@ -614,9 +538,9 @@ class sg_subscribe {
 
 
 	function add_block($email='') {
+		global $wpdb;
 		if ( !is_email($email) )
 			$email = $this->email;
-		global $wpdb;
 		$email = strtolower($email);
 
 		// add the option if it doesn't exist
@@ -634,9 +558,9 @@ class sg_subscribe {
 
 
 	function remove_block($email='') {
+		global $wpdb;
 		if ( !is_email($email) )
 			$email = $this->email;
-		global $wpdb;
 		$email = strtolower($email);
 
 		if ( $this->is_blocked($email) ) {
@@ -927,12 +851,6 @@ class sg_subscribe {
 			$update = true;
 		}
 
-		if ( $settings['not_subscribed_text'] == '' || $settings['subscribed_text'] == '' ) { // recover from WP 2.2/2.2.1 bug
-			delete_option('sg_subscribe_settings');
-			wp_redirect('http://' . $_SERVER['HTTP_HOST'] . add_query_arg('stcwpbug', '2'));
-			exit;
-		}
-
 		if ( !$this->is_multisite() && version_compare( $settings['version'], '2.2', '<' ) ) { // Upgrade to postmeta-driven subscriptions
 			foreach ( (array) $wpdb->get_col("DESC $wpdb->comments", 0) as $column ) {
 				if ( $column == 'comment_subscribe' ) {
@@ -983,7 +901,7 @@ class sg_subscribe {
 
 
 	function current_viewer_subscription_status(){
-		global $wpdb, $post, $user_email, $blog_id;
+		global $wpdb, $blog_id, $post, $user_email;
 
 		$comment_author_email = ( isset($_COOKIE['comment_author_email_'. COOKIEHASH]) ) ? trim($_COOKIE['comment_author_email_'. COOKIEHASH]) : '';
 		get_currentuserinfo();
@@ -1006,14 +924,13 @@ class sg_subscribe {
 		return false;
 	}
 
-
 	function manage_link($email='', $html=true, $echo=true) {
 		$link  = get_option('home') . '/?wp-subscription-manager=1';
 		if ( $email != 'admin' ) {
 			$link = add_query_arg('email', urlencode($email), $link);
 			$link = add_query_arg('key', $this->generate_key($email), $link);
 		}
-		$link = add_query_arg('ref', rawurlencode('http://' . $_SERVER['HTTP_HOST'] . attribute_escape($_SERVER['REQUEST_URI'])), $link);
+		$link = add_query_arg('ref', rawurlencode('http://' . $_SERVER['HTTP_HOST'] . esc_attr($_SERVER['REQUEST_URI'])), $link);
 		//$link = str_replace('+', '%2B', $link);
 		if ( $html )
 			$link = htmlentities($link);
@@ -1029,7 +946,7 @@ class sg_subscribe {
 		$email = strtolower( $comment->comment_author_email );
 		$postid = $comment->comment_post_ID;
 		if ( !is_email( $email ) )
-			sg_subscribe::remove_subscriber( $email, $postid, $blog_id );
+			_stc()->remove_subscriber( $email, $postid, $blog_id );
 		return $cid;
 	}
 
@@ -1039,7 +956,7 @@ class sg_subscribe {
 		$comment = &get_comment($cid);
 		$email = strtolower( $comment->comment_author_email );
 		$postid = $comment->comment_post_ID;
-		sg_subscribe::remove_subscriber( $email, $postid, $blog_id );
+		_stc()->remove_subscriber( $email, $postid, $blog_id );
 		return $cid;
 	}
 
@@ -1057,9 +974,166 @@ class sg_subscribe {
 	}
 
 	function add_admin_menu() {
-		add_submenu_page( 'edit-comments.php', __( 'Comment Subscription Manager', 'subscribe-to-comments' ), __( 'Subscriptions', 'subscribe-to-comments' ), 'manage_options', 'stc-management', 'sg_subscribe_admin' );
-		add_options_page(__('Subscribe to Comments', 'subscribe-to-comments'), __('Subscribe to Comments', 'subscribe-to-comments'), 'publish_posts', 'stc-options', array('sg_subscribe_settings', 'options_page'));
+		$manager_callback = add_submenu_page( 'edit-comments.php', __( 'Comment Subscription Manager', 'subscribe-to-comments' ), __( 'Subscriptions', 'subscribe-to-comments' ), 'manage_options', 'stc-management', 'sg_subscribe_admin' );
+		$opt_callback = add_options_page( __( 'Subscribe to Comments', 'subscribe-to-comments' ), __( 'Subscribe to Comments', 'subscribe-to-comments' ), 'publish_posts', 'stc-options', array( _stc(), 'options_page' ) );
+		add_action( "load-{$opt_callback}", array( _stc(), 'save_options' ) );
 	}
+
+
+
+
+
+
+
+
+
+
+
+//////////////////// OPTIONS ////////////////////////
+
+
+
+function tr( $option_slug, $option_title, $option_text, $description ='' ) {
+	echo "<tr valign='top'>\n\t<th scope='row'><label for='" . $option_slug . "'>" . $option_title . "</label></th>\n\t<td>" . $option_text;
+	if ( !empty( $description ) )
+		echo '<span class="setting-description">' . $description . '</span>';
+	echo "</td>\n</tr>\n";
+}
+
+function save_options() {
+	if ( isset( $_POST['sg_subscribe_settings_submit'] ) ) {
+		check_admin_referer('subscribe-to-comments-update_options');
+		$update_settings = stripslashes_deep( $_POST['sg_subscribe_settings'] );
+		_stc()->update_settings( $update_settings );
+		wp_redirect( add_query_arg( 'updated', '1', menu_page_url( 'stc-options', false ) ) );
+		add_settings_error('general', 'settings_updated', __('Settings saved.'), 'updated');
+		set_transient('settings_errors', get_settings_errors(), 30);
+		exit();
+	}
+}
+
+function options_page_contents() {
+	echo '<h2>' . __( 'Subscribe to Comments Settings', 'subscribe-to-comments' ) . '</h2>';
+
+
+	echo '<h3>' . __( 'Notification e-mails', 'subscribe-to-comments' ) . '</h3>';
+	echo '<table class="form-table">';
+	$this->tr( 'name', __( '"From" name', 'subscribe-to-comments' ), '<input type="text" size="40" id="name" name="sg_subscribe_settings[name]" value="' . $this->form_setting('name') . '" />' );
+	$this->tr( 'email', __( '"From" address', 'subscribe-to-comments' ), '<input type="text" size="40" id="email" name="sg_subscribe_settings[email]" value="' . $this->form_setting('email') . '" />', __( 'You may want this to be a special account that you set up for this purpose, as it will go out to everyone who subscribes', 'subscribe-to-comments' ) );
+	$this->tr( 'double_opt_in', __( 'Double opt-in', 'subscribe-to-comments' ), '<input type="checkbox" id="double_opt_in" name="sg_subscribe_settings[double_opt_in]" value="double_opt_in"' . $this->checkflag('double_opt_in') . ' /> <label for="double_opt_in">' . __( 'Require verification of first-time subscription e-mails (this is known as "double opt-in" and is required by law in some countries)', 'subscribe-to-comments') . '</label>' );
+	echo '</table>';
+
+	echo '<h3>' . __('Subscriber name formatting', 'subscribe_to_comments') . '</h3>';
+	echo '<table class="form-table">';
+	$this->tr( 'subscribed_format', __( 'Subscribed format', 'subscribe-to-comments' ), '<input type="text" size="40" id="subscribed_format" name="sg_subscribe_settings[subscribed_format]" value="' . $this->form_setting('subscribed_format') . '" />', __( 'e.g. <code>%NAME% (subscribed)</code> will display <code>John Smith (subscribed)</code>', 'subscribe-to-comments' ) );
+	echo '</table>';
+
+
+	echo '<h3>' . __('Comment form layout') . '</h3>';
+	echo '<table class="form-table">';
+	$this->tr( 'clear_both', 'CSS clearing', '<input type="checkbox" id="clear_both" name="sg_subscribe_settings[clear_both]" value="clear_both"' . $this->checkflag('clear_both') . ' /> <label for="clear_both">' . __('Do a CSS "clear" on the subscription checkbox/message (uncheck this if the checkbox/message appears in a strange location in your theme)', 'subscribe-to-comments') . '</label>' );
+	echo '</table>';
+
+	echo '<h3>' . __('Comment form text', 'subscribe-to-comments') . '</h3>';
+	echo '<p>' . __('Customize the messages shown to different people.  Use <code>[manager_link]</code> to insert the URI to the Subscription Manager.', 'subscribe-to-comments') . '</p>';
+	echo '<table class="form-table">';
+	$this->tr( 'not_subscribed_text', __( 'Not subscribed text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="not_subscribed_text" name="sg_subscribe_settings[not_subscribed_text]">' . $this->textarea_setting('not_subscribed_text') . '</textarea>' );
+	$this->tr( 'subscribed_text', __( 'Subscribed text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="subscribed_text" name="sg_subscribe_settings[subscribed_text]">' . $this->textarea_setting('subscribed_text') . '</textarea>' );
+	$this->tr( 'author_text', __( 'Entry author text', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="author_text" name="sg_subscribe_settings[author_text]">' . $this->textarea_setting('author_text') . '</textarea>' );
+	echo '</table>';
+
+	echo '<h3>' . __('Subscription manager', 'subscribe-to-comments') . '</h3>';
+	echo '<table class="form-table">';
+	$this->tr( 'use_custom_style', __( 'Custom style', 'subscribe-to-comments' ), '<input type="checkbox" onchange="if(this.checked){document.getElementById(\'stc-custom-style-div\').style.display=\'block\';}else{document.getElementById(\'stc-custom-style-div\').style.display=\'none\';}" id="use_custom_style" name="sg_subscribe_settings[use_custom_style]" value="use_custom_style"' . $this->checkflag('use_custom_style') . ' /> <label for="use_custom_style">' . __('Use custom style for Subscription Manager', 'subscribe-to-comments') . '</label>' );
+	echo '</table>';
+
+	echo '<div id="stc-custom-style-div" style="' . ( ( $this->form_setting('use_custom_style') != 'use_custom_style' ) ? 'display:none' : '' ) . '">';
+	echo '<p>' . __( 'These settings only matter if you are using a custom style.  <code>[theme_path]</code> will be replaced with the path to your current theme.', 'subscribe-to-comments' ) . '</p>';
+	echo '<table class="form-table">';
+	$this->tr( 'header', __( 'Path to header', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_header" name="sg_subscribe_settings[header]" value="' . $this->form_setting('header') . '" />' );
+	$this->tr( 'sidebar', __( 'Path to sidebar', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_sidebar" name="sg_subscribe_settings[sidebar]" value="' . $this->form_setting('sidebar') . '" />' );
+	$this->tr( 'footer', __( 'Path to footer', 'subscribe-to-comments' ), '<input type="text" size="40" id="sg_sub_footer" name="sg_subscribe_settings[footer]" value="' . $this->form_setting('footer') . '" />' );
+	$this->tr( 'before_manager', __( 'HTML for before the subscription manager', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="before_manager" name="sg_subscribe_settings[before_manager]">' . $this->textarea_setting('before_manager') . '</textarea>' );
+	$this->tr( 'after_manager', __( 'HTML for after the subscription manager', 'subscribe-to-comments' ), '<textarea style="width: 98%; font-size: 12px;" rows="2" cols="60" id="after_manager" name="sg_subscribe_settings[after_manager]">' . $this->textarea_setting('after_manager') . '</textarea>' );
+	echo '</table>';
+	echo '</div>';
+}
+
+function checkflag($optname) {
+	$options = get_option('sg_subscribe_settings');
+	if ( $options[$optname] != $optname )
+		return;
+	return ' checked="checked"';
+}
+
+/**
+ * Returns an HTML attribute sanitized version of a setting
+ * @param string $option_name The name of the STC option to fetch
+ * @return string the sanitized setting
+ */
+function form_setting( $option_name ) {
+	$options = get_option( 'sg_subscribe_settings' );
+	return esc_attr( $options[$option_name] );
+}
+
+function textarea_setting($optname) {
+	$options = get_option('sg_subscribe_settings');
+	return wp_specialchars($options[$optname]);
+}
+
+function options_page() {
+	echo '<form method="post">';
+	screen_icon();
+	echo '<div class="wrap">';
+
+	$this->options_page_contents();
+
+	echo '<p class="submit"><input type="submit" name="sg_subscribe_settings_submit" value="';
+	_e('Save Changes', 'subscribe-to-comments');
+	echo '" class="button-primary" /></p></div>';
+
+	wp_nonce_field('subscribe-to-comments-update_options');
+
+	echo '</form>';
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 } // class sg_subscribe
@@ -1068,28 +1142,25 @@ class sg_subscribe {
 
 
 
-function stc_checkbox_state($data) {
-	if ( isset($_POST['subscribe']) )
-		setcookie('subscribe_checkbox_'. COOKIEHASH, 'checked', time() + 30000000, COOKIEPATH);
+function stc_checkbox_state( $data ) {
+	if ( isset( $_POST['subscribe'] ) )
+		setcookie( 'subscribe_checkbox_'. COOKIEHASH, 'checked', time() + 30000000, COOKIEPATH );
 	else
-		setcookie('subscribe_checkbox_'. COOKIEHASH, 'unchecked', time() + 30000000, COOKIEPATH);
+		setcookie( 'subscribe_checkbox_'. COOKIEHASH, 'unchecked', time() + 30000000, COOKIEPATH );
 	return $data;
 }
 
 
 function stc_comment_author_filter( $author ) {
-	global $sg_subscribe;
-	sg_subscribe_start();
-	return $sg_subscribe->comment_author_filter( $author );
+			return _stc()->comment_author_filter( $author );
 }
 
 
 function sg_subscribe_start() {
-	global $sg_subscribe;
-
+	
 	if ( !$sg_subscribe ) {
-		load_plugin_textdomain( 'subscribe-to-comments', trailingslashit( PLUGINDIR ) . dirname( plugin_basename( __FILE__ ) ), dirname( plugin_basename( __FILE__ ) ) );
-		$sg_subscribe = new sg_subscribe();
+		load_plugin_textdomain( 'subscribe-to-comments', false, dirname( plugin_basename( __FILE__ ) ) );
+		$sg_subscribe = new CWS_STC();
 	}
 }
 
@@ -1098,12 +1169,12 @@ function sg_subscribe_start() {
 add_action( 'comment_form', 'show_subscription_checkbox' );
 
 // priority is very low (50) because we want to let anti-spam plugins have their way first.
-add_action( 'comment_post', create_function( '$a', 'global $sg_subscribe; sg_subscribe_start(); return $sg_subscribe->send_notifications($a);' ), 50 );
-add_action( 'comment_post', create_function( '$a', 'global $sg_subscribe; sg_subscribe_start(); return $sg_subscribe->maybe_add_subscriber($a);' ) );
+add_action( 'comment_post', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); return _stc()->send_notifications($a);' ), 50 );
+add_action( 'comment_post', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); return _stc()->maybe_add_subscriber($a);' ) );
 
-add_action( 'wp_set_comment_status', create_function( '$a', 'global $sg_subscribe; sg_subscribe_start(); return $sg_subscribe->send_notifications($a);' ) );
-add_action( 'admin_menu', create_function( '$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->add_admin_menu();' ) );
-add_action( 'admin_head', create_function( '$a', 'global $sg_subscribe; sg_subscribe_start(); $sg_subscribe->sg_wp_head();' ) );
+add_action( 'wp_set_comment_status', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); return _stc()->send_notifications($a);' ) );
+add_action( 'admin_menu', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); _stc()->add_admin_menu();' ) );
+add_action( 'admin_head', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); _stc()->sg_wp_head();' ) );
 add_action( 'edit_comment', array( 'sg_subscribe', 'on_edit' ) );
 add_action( 'delete_comment', array( 'sg_subscribe', 'on_delete' ) );
 
@@ -1114,9 +1185,8 @@ add_filter( 'preprocess_comment', 'stc_checkbox_state', 1 );
 
 
 // detect "subscribe without commenting" attempts
-add_action( 'init', create_function( '$a','global $sg_subscribe; if ( $_POST[\'solo-comment-subscribe\'] == \'solo-comment-subscribe\' && is_numeric($_POST[\'postid\']) ) {
-	sg_subscribe_start();
-	$sg_subscribe->solo_subscribe(stripslashes($_POST[\'email\']), (int) $_POST[\'postid\']);
+add_action( 'init', create_function( '$a','global $_cws_stc; if ( $_POST[\'solo-comment-subscribe\'] == \'solo-comment-subscribe\' && is_numeric($_POST[\'postid\']) ) {
+		_stc()->solo_subscribe(stripslashes($_POST[\'email\']), (int) $_POST[\'postid\']);
 }' ) );
 
 if ( isset( $_REQUEST['wp-subscription-manager'] ) )
@@ -1125,95 +1195,95 @@ if ( isset( $_REQUEST['wp-subscription-manager'] ) )
 function sg_subscribe_admin_standalone() {
 	sg_subscribe_admin( true );
 }
+
 function sg_subscribe_admin($standalone = false) {
 	global $wpdb, $sg_subscribe, $wp_version, $blog_id;
 
-	sg_subscribe_start();
-
+	
 	if ( $standalone ) {
-		$sg_subscribe->form_action = get_option('home') . '/?wp-subscription-manager=1';
-		$sg_subscribe->standalone = true;
+		_stc()->form_action = get_option('home') . '/?wp-subscription-manager=1';
+		_stc()->standalone = true;
 		ob_start( create_function( '$a', 'return str_replace("<title>", "<title> " . __("Subscription Manager", "subscribe-to-comments") . " &raquo; ", $a);' ) );
 	} else {
-		$sg_subscribe->form_action = 'edit-comments.php?page=stc-management';
-		$sg_subscribe->standalone = false;
+		_stc()->form_action = 'edit-comments.php?page=stc-management';
+		_stc()->standalone = false;
 	}
 
-	$sg_subscribe->manager_init();
+	_stc()->manager_init();
 
 	get_currentuserinfo();
 
-	if ( !$sg_subscribe->validate_key() )
+	if ( !_stc()->validate_key() )
 		die ( __( 'You may not access this page without a valid key.', 'subscribe-to-comments' ) );
 
-	$sg_subscribe->determine_action();
+	_stc()->determine_action();
 
-	switch ( $sg_subscribe->action ) :
+	switch ( _stc()->action ) :
 
 		case "opt_in" :
-			if ( $sg_subscribe->confirm_pending_subscriber( $sg_subscribe->email ) ) {
-				$sg_subscribe->add_message(sprintf(__('Thank you! <strong>%1$s</strong> has been confirmed, and is now subscribed to comments.', 'subscribe-to-comments'), $sg_subscribe->email));
+			if ( _stc()->confirm_pending_subscriber( _stc()->email ) ) {
+				_stc()->add_message(sprintf(__('Thank you! <strong>%1$s</strong> has been confirmed, and is now subscribed to comments.', 'subscribe-to-comments'), _stc()->email));
 			}
 			break;
 
 		case "change_email" :
-			if ( $sg_subscribe->change_email() ) {
-				$sg_subscribe->add_message(sprintf(__('All notifications that were formerly sent to <strong>%1$s</strong> will now be sent to <strong>%2$s</strong>!', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->new_email));
+			if ( _stc()->change_email() ) {
+				_stc()->add_message(sprintf(__('All notifications that were formerly sent to <strong>%1$s</strong> will now be sent to <strong>%2$s</strong>!', 'subscribe-to-comments'), _stc()->email, _stc()->new_email));
 				// change info to the new email
-				$sg_subscribe->email = $sg_subscribe->new_email;
-				unset($sg_subscribe->new_email);
-				$sg_subscribe->key = $sg_subscribe->generate_key($sg_subscribe->email);
-				$sg_subscribe->validate_key();
+				_stc()->email = _stc()->new_email;
+				unset(_stc()->new_email);
+				_stc()->key = _stc()->generate_key(_stc()->email);
+				_stc()->validate_key();
 			}
 			break;
 
 		case "remove_subscriptions" :
-			$postsremoved = $sg_subscribe->remove_subscriptions($_POST['subscrips']);
+			$postsremoved = _stc()->remove_subscriptions($_POST['subscrips']);
 			if ( $postsremoved > 0 )
-				$sg_subscribe->add_message(sprintf(__('<strong>%1$s</strong> %2$s removed successfully.', 'subscribe-to-comments'), $postsremoved, ($postsremoved != 1) ? __('subscriptions', 'subscribe-to-comments') : __('subscription', 'subscribe-to-comments')));
+				_stc()->add_message(sprintf(__('<strong>%1$s</strong> %2$s removed successfully.', 'subscribe-to-comments'), $postsremoved, ($postsremoved != 1) ? __('subscriptions', 'subscribe-to-comments') : __('subscription', 'subscribe-to-comments')));
 			break;
 
 		case "remove_block" :
-			if ( $sg_subscribe->remove_block($sg_subscribe->email) )
-				$sg_subscribe->add_message(sprintf(__('The block on <strong>%s</strong> has been successfully removed.', 'subscribe-to-comments'), $sg_subscribe->email));
+			if ( _stc()->remove_block(_stc()->email) )
+				_stc()->add_message(sprintf(__('The block on <strong>%s</strong> has been successfully removed.', 'subscribe-to-comments'), _stc()->email));
 			else
-				$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> isn\'t blocked!', 'subscribe-to-comments'), $sg_subscribe->email), 'manager');
+				_stc()->add_error(sprintf(__('<strong>%s</strong> isn\'t blocked!', 'subscribe-to-comments'), _stc()->email), 'manager');
 			break;
 
 		case "email_change_request" :
-			if ( $sg_subscribe->is_blocked($sg_subscribe->email) )
-				$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has been blocked from receiving notifications.  You will have to have the administrator remove the block before you will be able to change your notification address.', 'subscribe-to-comments'), $sg_subscribe->email));
+			if ( _stc()->is_blocked(_stc()->email) )
+				_stc()->add_error(sprintf(__('<strong>%s</strong> has been blocked from receiving notifications.  You will have to have the administrator remove the block before you will be able to change your notification address.', 'subscribe-to-comments'), _stc()->email));
 			else
-				if ($sg_subscribe->change_email_request($sg_subscribe->email, $sg_subscribe->new_email))
-					$sg_subscribe->add_message(sprintf(__('Your change of e-mail request was successfully received.  Please check your old account (<strong>%s</strong>) in order to confirm the change.', 'subscribe-to-comments'), $sg_subscribe->email));
+				if (_stc()->change_email_request(_stc()->email, _stc()->new_email))
+					_stc()->add_message(sprintf(__('Your change of e-mail request was successfully received.  Please check your old account (<strong>%s</strong>) in order to confirm the change.', 'subscribe-to-comments'), _stc()->email));
 			break;
 
 		case "block_request" :
-			if ($sg_subscribe->block_email_request($sg_subscribe->email ))
-				$sg_subscribe->add_message(sprintf(__('Your request to block <strong>%s</strong> from receiving any further notifications has been received.  In order for you to complete the block, please check your e-mail and click on the link in the message that has been sent to you.', 'subscribe-to-comments'), $sg_subscribe->email));
+			if (_stc()->block_email_request(_stc()->email ))
+				_stc()->add_message(sprintf(__('Your request to block <strong>%s</strong> from receiving any further notifications has been received.  In order for you to complete the block, please check your e-mail and click on the link in the message that has been sent to you.', 'subscribe-to-comments'), _stc()->email));
 			break;
 
 		case "solo_subscribe" :
-			$sg_subscribe->add_message(sprintf(__('<strong>%1$s</strong> has been successfully subscribed to %2$s', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->entry_link( $blog_id, $_GET['subscribeid'])));
+			_stc()->add_message(sprintf(__('<strong>%1$s</strong> has been successfully subscribed to %2$s', 'subscribe-to-comments'), _stc()->email, _stc()->entry_link( $blog_id, $_GET['subscribeid'])));
 			break;
 
 		case "block" :
-			if ($sg_subscribe->add_block($sg_subscribe->email))
-				$sg_subscribe->add_message(sprintf(__('<strong>%1$s</strong> has been added to the "do not mail" list. You will no longer receive any notifications from this site. If this was done in error, please contact the <a href="mailto:%2$s">site administrator</a> to remove this block.', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->site_email));
+			if (_stc()->add_block(_stc()->email))
+				_stc()->add_message(sprintf(__('<strong>%1$s</strong> has been added to the "do not mail" list. You will no longer receive any notifications from this site. If this was done in error, please contact the <a href="mailto:%2$s">site administrator</a> to remove this block.', 'subscribe-to-comments'), _stc()->email, _stc()->site_email));
 			else
-				$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> has already been blocked!', 'subscribe-to-comments'), $sg_subscribe->email), 'manager');
-			$sg_subscribe->key = $sg_subscribe->generate_key($sg_subscribe->email);
-			$sg_subscribe->validate_key();
+				_stc()->add_error(sprintf(__('<strong>%s</strong> has already been blocked!', 'subscribe-to-comments'), _stc()->email), 'manager');
+			_stc()->key = _stc()->generate_key(_stc()->email);
+			_stc()->validate_key();
 			break;
 
 	endswitch;
 
 
 
-	if ( $sg_subscribe->standalone ) {
-		if ( !$sg_subscribe->use_wp_style && !empty($sg_subscribe->header) ) {
-		@include($sg_subscribe->header);
-		echo $sg_subscribe->before_manager;
+	if ( _stc()->standalone ) {
+		if ( !_stc()->use_wp_style && !empty(_stc()->header) ) {
+		@include(_stc()->header);
+		echo _stc()->before_manager;
 	} else { ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 	<html>
 	<head>
@@ -1226,7 +1296,7 @@ function sg_subscribe_admin($standalone = false) {
 		<meta http-equiv="Content-Type" content="text/html;
 	charset=<?php bloginfo('charset'); ?>" />
 
-	<?php $sg_subscribe->sg_wp_head(); ?>
+	<?php _stc()->sg_wp_head(); ?>
 
 	</head>
 	<body>
@@ -1234,34 +1304,34 @@ function sg_subscribe_admin($standalone = false) {
 	<?php } ?>
 
 
-	<?php $sg_subscribe->show_messages(); ?>
+	<?php _stc()->show_messages(); ?>
 
-	<?php $sg_subscribe->show_errors(); ?>
+	<?php _stc()->show_errors(); ?>
 
-	<?php if ( function_exists( 'screen_icon' ) ) { screen_icon(); } ?>
+	<?php screen_icon(); ?>
 	<div class="wrap">
 	<h2><?php _e( 'Comment Subscription Manager', 'subscribe-to-comments' ); ?></h2>
 
-	<?php if ( !empty( $sg_subscribe->ref ) ) : ?>
-	<?php $sg_subscribe->add_message( sprintf( __( 'Return to the page you were viewing: %s', 'subscribe-to-comments' ), $sg_subscribe->entry_link( $blog_id, url_to_postid( $sg_subscribe->ref ), $sg_subscribe->ref ) ) ); ?>
-	<?php $sg_subscribe->show_messages(); ?>
+	<?php if ( !empty( _stc()->ref ) ) : ?>
+	<?php _stc()->add_message( sprintf( __( 'Return to the page you were viewing: %s', 'subscribe-to-comments' ), _stc()->entry_link( $blog_id, url_to_postid( _stc()->ref ), _stc()->ref ) ) ); ?>
+	<?php _stc()->show_messages(); ?>
 	<?php endif; ?>
 
 
 
-	<?php if ( $sg_subscribe->is_blocked() ) { ?>
+	<?php if ( _stc()->is_blocked() ) { ?>
 
 		<?php if ( current_user_can('manage_options') ) : ?>
 
 		<h3><?php _e('Remove Block', 'subscribe-to-comments'); ?></h3
 
 			<p>
-			<?php printf( __( 'Click the button below to remove the block on <strong>%s</strong>.  This should only be done if the user has specifically requested it.', 'subscribe-to-comments' ), $sg_subscribe->email ); ?>
+			<?php printf( __( 'Click the button below to remove the block on <strong>%s</strong>.  This should only be done if the user has specifically requested it.', 'subscribe-to-comments' ), _stc()->email ); ?>
 			</p>
 
-			<form name="removeBlock" method="post" action="<?php echo $sg_subscribe->form_action; ?>">
+			<form name="removeBlock" method="post" action="<?php echo _stc()->form_action; ?>">
 			<input type="hidden" name="removeBlock" value="removeBlock /">
-	<?php $sg_subscribe->hidden_form_fields(); ?>
+	<?php _stc()->hidden_form_fields(); ?>
 
 			<p class="submit">
 			<input type="submit" name="submit" value="<?php _e('Remove Block &raquo;', 'subscribe-to-comments'); ?>" />
@@ -1273,7 +1343,7 @@ function sg_subscribe_admin($standalone = false) {
 		<h3><?php _e('Blocked', 'subscribe-to-comments'); ?></h3>
 
 			<p>
-			<?php printf(__('You have indicated that you do not wish to receive any notifications at <strong>%1$s</strong> from this site. If this is incorrect, or if you wish to have the block removed, please contact the <a href="mailto:%2$s">site administrator</a>.', 'subscribe-to-comments'), $sg_subscribe->email, $sg_subscribe->site_email); ?>
+			<?php printf(__('You have indicated that you do not wish to receive any notifications at <strong>%1$s</strong> from this site. If this is incorrect, or if you wish to have the block removed, please contact the <a href="mailto:%2$s">site administrator</a>.', 'subscribe-to-comments'), _stc()->email, _stc()->site_email); ?>
 			</p>
 
 	<?php endif; ?>
@@ -1282,18 +1352,18 @@ function sg_subscribe_admin($standalone = false) {
 	<?php } else { ?>
 
 
-	<?php $postlist = $sg_subscribe->subscriptions_from_email(); ?>
+	<?php $postlist = _stc()->subscriptions_from_email(); ?>
 
 <?php
-		if ( isset($sg_subscribe->email) && !is_array($postlist) && $sg_subscribe->email != $sg_subscribe->site_email && $sg_subscribe->email != get_bloginfo('admin_email') ) {
-			if ( is_email($sg_subscribe->email) )
-				$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not subscribed to any posts on this site.', 'subscribe-to-comments'), $sg_subscribe->email));
+		if ( isset(_stc()->email) && !is_array($postlist) && _stc()->email != _stc()->site_email && _stc()->email != get_bloginfo('admin_email') ) {
+			if ( is_email(_stc()->email) )
+				_stc()->add_error(sprintf(__('<strong>%s</strong> is not subscribed to any posts on this site.', 'subscribe-to-comments'), _stc()->email));
 			else
-				$sg_subscribe->add_error(sprintf(__('<strong>%s</strong> is not a valid e-mail address.', 'subscribe-to-comments'), $sg_subscribe->email));
+				_stc()->add_error(sprintf(__('<strong>%s</strong> is not a valid e-mail address.', 'subscribe-to-comments'), _stc()->email));
 		}
 ?>
 
-	<?php $sg_subscribe->show_errors(); ?>
+	<?php _stc()->show_errors(); ?>
 
 
 
@@ -1301,7 +1371,7 @@ function sg_subscribe_admin($standalone = false) {
 	<?php if ( current_user_can('manage_options') ) { ?>
 
 			<?php if ( $_REQUEST['email'] ) : ?>
-				<p><a href="<?php echo clean_url( $sg_subscribe->form_action ); ?>"><?php _e('&laquo; Back'); ?></a></p>
+				<p><a href="<?php echo clean_url( _stc()->form_action ); ?>"><?php _e('&laquo; Back'); ?></a></p>
 			<?php endif; ?>
 
 			<h3><?php _e('Find Subscriptions', 'subscribe-to-comments'); ?></h3>
@@ -1310,8 +1380,8 @@ function sg_subscribe_admin($standalone = false) {
 			<?php _e('Enter an e-mail address to view its subscriptions or undo a block.', 'subscribe-to-comments'); ?>
 			</p>
 
-			<form name="getemail" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
-			<input type="hidden" name="ref" value="<?php echo $sg_subscribe->ref; ?>" />
+			<form name="getemail" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
+			<input type="hidden" name="ref" value="<?php echo _stc()->ref; ?>" />
 
 			<p>
 			<input name="email" type="text" id="email" size="40" />
@@ -1328,8 +1398,8 @@ function sg_subscribe_admin($standalone = false) {
 
 <?php
 			$stc_limit = ( !$_REQUEST['showallsubscribers'] ) ? 'LIMIT 25' : '';
-			if ( $sg_subscribe->is_multisite() ) {
-				$all_pm_subscriptions = $wpdb->get_results("SELECT DISTINCT email, count(post_id) as ccount FROM $sg_subscribe->ms_table WHERE status = 'active' GROUP BY email ORDER BY ccount DESC $stc_limit");
+			if ( _stc()->is_multisite() ) {
+				$all_pm_subscriptions = $wpdb->get_results("SELECT DISTINCT email, count(post_id) as ccount FROM _stc()->ms_table WHERE status = 'active' GROUP BY email ORDER BY ccount DESC $stc_limit");
 			} else {
 				$all_pm_subscriptions = $wpdb->get_results("SELECT DISTINCT LCASE(meta_value) as email, count(post_id) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY email ORDER BY ccount DESC $stc_limit");
 			}
@@ -1343,11 +1413,11 @@ function sg_subscribe_admin($standalone = false) {
 			}
 
 if ( !$_REQUEST['showallsubscribers'] ) : ?>
-	<p><a href="<?php echo clean_url( attribute_escape(add_query_arg('showallsubscribers', '1', $sg_subscribe->form_action)) ); ?>"><?php _e('Show all subscribers', 'subscribe-to-comments'); ?></a></p>
+	<p><a href="<?php echo clean_url( esc_attr(add_query_arg('showallsubscribers', '1', _stc()->form_action)) ); ?>"><?php _e('Show all subscribers', 'subscribe-to-comments'); ?></a></p>
 <?php elseif ( !$_REQUEST['showccfield'] ) : ?>
 	<p><a href="<?php echo add_query_arg('showccfield', '1'); ?>"><?php _e('Show list of subscribers in <code>CC:</code>-field format (for bulk e-mailing)', 'subscribe-to-comments'); ?></a></p>
 <?php else : ?>
-	<p><a href="<?php echo clean_url($sg_subscribe->form_action); ?>"><?php _e('&laquo; Back to regular view'); ?></a></p>
+	<p><a href="<?php echo clean_url(_stc()->form_action); ?>"><?php _e('&laquo; Back to regular view'); ?></a></p>
 	<p><textarea cols="60" rows="10"><?php echo implode(', ', array_keys($all_subscriptions) ); ?></textarea></p>
 <?php endif;
 
@@ -1357,15 +1427,15 @@ if ( !$_REQUEST['showallsubscribers'] ) : ?>
 					echo "<ul>\n";
 					foreach ( (array) $all_subscriptions as $email => $ccount ) {
 						$enc_email = urlencode($email);
-						echo "<li>($ccount) <a href='" . clean_url( $sg_subscribe->form_action . "&email=$enc_email" ) . "'>" . wp_specialchars($email) . "</a></li>\n";
+						echo "<li>($ccount) <a href='" . clean_url( _stc()->form_action . "&email=$enc_email" ) . "'>" . wp_specialchars($email) . "</a></li>\n";
 					}
 					echo "</ul>\n";
 				}
 ?>
 				<h3><?php _e('Top Subscribed Posts', 'subscribe-to-comments'); ?></h3>
 				<?php
-				if ( $sg_subscribe->is_multisite() ) {
-					$top_subscribed_posts = $wpdb->get_results( $wpdb->prepare( "SELECT DISTINCT post_id, count( distinct post_id ) as ccount FROM $sg_subscribe->ms_table WHERE status = 'active' AND blog_id = %s ORDER BY ccount DEST LIMIT 25", $blog_id ) );
+				if ( _stc()->is_multisite() ) {
+					$top_subscribed_posts = $wpdb->get_results( $wpdb->prepare( "SELECT DISTINCT post_id, count( distinct post_id ) as ccount FROM _stc()->ms_table WHERE status = 'active' AND blog_id = %s ORDER BY ccount DEST LIMIT 25", $blog_id ) );
 				} else {
 					$top_subscribed_posts = $wpdb->get_results("SELECT DISTINCT post_id, count(distinct meta_value) as ccount FROM $wpdb->postmeta WHERE meta_key = '_sg_subscribe-to-comments' GROUP BY post_id ORDER BY ccount DESC LIMIT 25");
 				}
@@ -1414,17 +1484,17 @@ function checkAll(form) {
 			<h3><?php _e('Subscriptions', 'subscribe-to-comments'); ?></h3>
 
 				<p>
-				<?php printf(__('<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click "Remove Selected Subscription(s)" at the bottom of the list.', 'subscribe-to-comments'), $sg_subscribe->email); ?>
+				<?php printf(__('<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click "Remove Selected Subscription(s)" at the bottom of the list.', 'subscribe-to-comments'), _stc()->email); ?>
 				</p>
 
-				<form name="removeSubscription" id="removeSubscription" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
+				<form name="removeSubscription" id="removeSubscription" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
 				<input type="hidden" name="removesubscrips" value="removesubscrips" />
-	<?php $sg_subscribe->hidden_form_fields(); ?>
+	<?php _stc()->hidden_form_fields(); ?>
 
 				<ol>
 				<?php $i = 0;
 				foreach ( $postlist as $pl ) { $i++; ?>
-					<li><label for="subscrip-<?php echo $i; ?>"><input id="subscrip-<?php echo $i; ?>" type="checkbox" name="subscrips[]" value="<?php echo $pl[0] .'-'. $pl[1]; ?>" /> <?php echo $sg_subscribe->entry_link($pl[0], $pl[1]); ?></label></li>
+					<li><label for="subscrip-<?php echo $i; ?>"><input id="subscrip-<?php echo $i; ?>" type="checkbox" name="subscrips[]" value="<?php echo $pl[0] .'-'. $pl[1]; ?>" /> <?php echo _stc()->entry_link($pl[0], $pl[1]); ?></label></li>
 				<?php } ?>
 				</ol>
 
@@ -1445,12 +1515,12 @@ function checkAll(form) {
 
 			<h3><?php _e('Block All Notifications', 'subscribe-to-comments'); ?></h3>
 
-				<form name="blockemail" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
+				<form name="blockemail" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
 				<input type="hidden" name="blockemail" value="blockemail" />
-	<?php $sg_subscribe->hidden_form_fields(); ?>
+	<?php _stc()->hidden_form_fields(); ?>
 
 				<p>
-				<?php printf(__('If you would like <strong>%s</strong> to be blocked from receiving any notifications from this site, click the button below.  This should be reserved for cases where someone is signing you up for notifications without your consent.', 'subscribe-to-comments'), $sg_subscribe->email); ?>
+				<?php printf(__('If you would like <strong>%s</strong> to be blocked from receiving any notifications from this site, click the button below.  This should be reserved for cases where someone is signing you up for notifications without your consent.', 'subscribe-to-comments'), _stc()->email); ?>
 				</p>
 
 				<p class="submit">
@@ -1462,12 +1532,12 @@ function checkAll(form) {
 
 			<h3><?php _e('Change E-mail Address', 'subscribe-to-comments'); ?></h3>
 
-				<form name="changeemailrequest" method="post" action="<?php echo clean_url( $sg_subscribe->form_action ); ?>">
+				<form name="changeemailrequest" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
 				<input type="hidden" name="changeemailrequest" value="changeemailrequest" />
-	<?php $sg_subscribe->hidden_form_fields(); ?>
+	<?php _stc()->hidden_form_fields(); ?>
 
 				<p>
-				<?php printf(__('If you would like to change the e-mail address for your subscriptions, enter the new address below.  You will be required to verify this request by clicking a special link sent to your current address (<strong>%s</strong>).', 'subscribe-to-comments'), $sg_subscribe->email); ?>
+				<?php printf(__('If you would like to change the e-mail address for your subscriptions, enter the new address below.  You will be required to verify this request by clicking a special link sent to your current address (<strong>%s</strong>).', 'subscribe-to-comments'), _stc()->email); ?>
 				</p>
 
 				<p>
@@ -1482,14 +1552,14 @@ function checkAll(form) {
 	<?php } //end if not in do not mail ?>
 	</div>
 
-	<?php if ( $sg_subscribe->standalone ) : ?>
-	<?php if ( !$sg_subscribe->use_wp_style ) :
-	echo $sg_subscribe->after_manager;
+	<?php if ( _stc()->standalone ) : ?>
+	<?php if ( !_stc()->use_wp_style ) :
+	echo _stc()->after_manager;
 
-	if ( !empty($sg_subscribe->sidebar) )
-		@include_once($sg_subscribe->sidebar);
-	if ( !empty($sg_subscribe->footer) )
-		@include_once($sg_subscribe->footer);
+	if ( !empty( _stc()->sidebar ) )
+		@include_once( _stc()->sidebar );
+	if ( !empty( _stc()->footer ) )
+		@include_once( _stc()->footer );
 	?>
 	<?php else : ?>
 	</body>
@@ -1500,3 +1570,6 @@ function checkAll(form) {
 
 <?php die(); // stop WP from loading ?>
 <?php }
+
+// Bootstrap the whole thing
+_stc();
