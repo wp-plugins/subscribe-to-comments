@@ -1308,7 +1308,7 @@ function sg_subscribe_admin($standalone = false) {
 
 	<?php _stc()->show_errors(); ?>
 
-	<?php screen_icon(); ?>
+	<?php if ( function_exists( 'screen_icon' ) ) screen_icon(); ?>
 	<div class="wrap">
 	<h2><?php _e( 'Comment Subscription Manager', 'subscribe-to-comments' ); ?></h2>
 
