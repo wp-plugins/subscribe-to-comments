@@ -160,7 +160,7 @@ class CWS_STC {
 			$this->ms_table = $wpdb->base_prefix . 'comment_subscriptions';
 		$this->db_upgrade_check();
 
-		add_action( 'admin_init', array( &$this, 'admin_init' ) );
+		$this->register_hooks();
 		register_uninstall_hook( __FILE__, array( &$this, 'uninstall' ) );
 
 		$this->settings = get_option( 'sg_subscribe_settings' );
@@ -179,6 +179,33 @@ class CWS_STC {
 		$this->errors = '';
 		$this->bid_post_subscriptions = array();
 		$this->email_subscriptions = '';
+	}
+
+	function register_hooks() {
+		add_action( 'admin_init', array( &$this, 'admin_init' ) );
+		// This will be overridden if the user manually places the function
+		// in the comments form before the comment_form do_action() call
+		add_action( 'comment_form', 'show_subscription_checkbox' );
+
+		// priority is very low (50) because we want to let anti-spam plugins have their way first.
+		add_action( 'comment_post', array( &$this, 'send_notifications' ) );
+		add_action( 'comment_post', array( &$this, 'maybe_add_subscriber' );
+		add_action( 'wp_set_comment_status', array( &$this, 'send_notifications' );
+		add_action( 'admin_menu', array( &$this, 'add_admin_menu' ) );
+		add_action( 'admin_head', array( &$this, 'admin_head' ) );
+		add_action( 'edit_comment', array( &$this, 'on_edit' ) );
+		add_action( 'delete_comment', array( &$this, 'on_delete' ) );
+
+		add_filter( 'get_comment_author_link', 'stc_comment_author_filter' );
+
+		// save users' checkbox preference
+		add_filter( 'preprocess_comment', 'stc_checkbox_state', 1 );
+
+		// detect "subscribe without commenting" attempts
+		add_action( 'init', array( &$this, 'maybe_solo_subscribe' ) );
+
+		if ( isset( $_REQUEST['wp-subscription-manager'] ) )
+			add_action( 'template_redirect', 'sg_subscribe_admin_standalone' );
 	}
 
 	/**
@@ -345,6 +372,10 @@ class CWS_STC {
 		return false;
 	}
 
+	function maybe_solo_subscribe() {
+		if ( $_POST['solo-comment-subscribe'] == 'solo-comment-subscribe' && is_numeric( $_POST['postid'] ) )
+				$this->solo_subscribe( stripslashes( $_POST['email'] ), (int) $_POST['postid'] );
+	}
 
 	function solo_subscribe ( $email, $postid ) {
 		global $wpdb, $blog_id, $cache_userdata, $user_email;
@@ -806,7 +837,7 @@ class CWS_STC {
 	}
 
 
-	function sg_wp_head() { ?>
+	function admin_head() { ?>
 		<style type="text/css" media="screen">
 		.updated-error {
 			background-color: #FF8080;
@@ -1157,40 +1188,13 @@ function stc_comment_author_filter( $author ) {
 
 
 function sg_subscribe_start() {
-	
 	if ( !$sg_subscribe ) {
 		load_plugin_textdomain( 'subscribe-to-comments', false, dirname( plugin_basename( __FILE__ ) ) );
 		$sg_subscribe = new CWS_STC();
 	}
 }
 
-// This will be overridden if the user manually places the function
-// in the comments form before the comment_form do_action() call
-add_action( 'comment_form', 'show_subscription_checkbox' );
 
-// priority is very low (50) because we want to let anti-spam plugins have their way first.
-add_action( 'comment_post', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); return _stc()->send_notifications( $a );' ), 50 );
-add_action( 'comment_post', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); return _stc()->maybe_add_subscriber( $a );' ) );
-
-add_action( 'wp_set_comment_status', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); return _stc()->send_notifications( $a );' ) );
-add_action( 'admin_menu', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); _stc()->add_admin_menu();' ) );
-add_action( 'admin_head', create_function( '$a', 'global $_cws_stc; sg_subscribe_start(); _stc()->sg_wp_head();' ) );
-add_action( 'edit_comment', array( 'sg_subscribe', 'on_edit' ) );
-add_action( 'delete_comment', array( 'sg_subscribe', 'on_delete' ) );
-
-add_filter( 'get_comment_author_link', 'stc_comment_author_filter' );
-
-// save users' checkbox preference
-add_filter( 'preprocess_comment', 'stc_checkbox_state', 1 );
-
-
-// detect "subscribe without commenting" attempts
-add_action( 'init', create_function( '$a','global $_cws_stc; if ( $_POST[\'solo-comment-subscribe\'] == \'solo-comment-subscribe\' && is_numeric( $_POST[\'postid\'] ) ) {
-		_stc()->solo_subscribe( stripslashes( $_POST[\'email\'] ), (int) $_POST[\'postid\'] );
-}' ) );
-
-if ( isset( $_REQUEST['wp-subscription-manager'] ) )
-	add_action( 'template_redirect', 'sg_subscribe_admin_standalone' );
 
 function sg_subscribe_admin_standalone() {
 	sg_subscribe_admin( true );
@@ -1296,7 +1300,7 @@ function sg_subscribe_admin( $standalone = false ) {
 		<meta http-equiv="Content-Type" content="text/html;
 	charset=<?php bloginfo( 'charset' ); ?>" />
 
-	<?php _stc()->sg_wp_head(); ?>
+	<?php _stc()->admin_head(); ?>
 
 	</head>
 	<body>
