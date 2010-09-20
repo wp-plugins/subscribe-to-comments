@@ -33,36 +33,9 @@ function _stc() {
 	return $_cws_stc;
 }
 
-/* This is the code that is inserted into the comment form */
-function show_subscription_checkbox( $id='0' ) {
-
-	if ( _stc()->checkbox_shown )
-		return $id;
-	if ( !$email = _stc()->current_viewer_subscription_status() ) :
-		$checked_status = ( !empty( $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) && 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
-	?>
-
-	<p <?php if ( _stc()->clear_both ) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
-	<input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" <?php if ( $checked_status ) echo 'checked="checked" '; ?>/>
-	<label for="subscribe"><?php echo _stc()->not_subscribed_text; ?></label>
-	</p>
-
-<?php elseif ( $email == 'admin' && current_user_can( 'manage_options' ) ) : ?>
-
-	<p <?php if ( _stc()->clear_both ) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
-	<?php echo str_replace( '[manager_link]', _stc()->manage_link($email, true, false ), _stc()->author_text ); ?>
-	</p>
-
-<?php else : ?>
-
-	<p <?php if ( _stc()->clear_both ) echo 'style="clear: both;" '; ?>class="subscribe-to-comments">
-	<?php echo str_replace( '[manager_link]', _stc()->manage_link( $email, true, false ), _stc()->subscribed_text ); ?>
-	</p>
-
-<?php endif;
-
-_stc()->checkbox_shown = true;
-return $id;
+// Backwards Compat
+function show_subscription_checkbox( $id=0 ) {
+	_stc()->echo_add_checkbox();
 }
 
 function show_manual_subscription_form() {
@@ -181,11 +154,19 @@ class CWS_STC {
 		$this->email_subscriptions = '';
 	}
 
+	/**
+	 * Registers this plugin's WordPress hooks
+	 */
 	function register_hooks() {
 		add_action( 'admin_init', array( &$this, 'admin_init' ) );
-		// This will be overridden if the user manually places the function
-		// in the comments form before the comment_form do_action() call
-		add_action( 'comment_form', 'show_subscription_checkbox' );
+		/*
+			This will be overridden if the user manually places the function
+			in the comments form before the comment_form do_action() call
+			or if the user has a theme that supports a hookable comments form
+		*/
+		add_action( 'comment_form', array( &$this, 'echo_add_checkbox' ) );
+		// Hook in to themes that use comment_form()
+		add_filter( 'comment_form_defaults', array( &$this, 'add_checkbox_to_default' ) );
 
 		// priority is very low (50) because we want to let anti-spam plugins have their way first.
 		add_action( 'comment_post', array( &$this, 'send_notifications' ) );
@@ -195,6 +176,7 @@ class CWS_STC {
 		add_action( 'admin_head', array( &$this, 'admin_head' ) );
 		add_action( 'edit_comment', array( &$this, 'on_edit' ) );
 		add_action( 'delete_comment', array( &$this, 'on_delete' ) );
+		add_filter( 'the_content', array( &$this, 'manager' ) );
 
 		add_filter( 'get_comment_author_link', 'stc_comment_author_filter' );
 
@@ -205,7 +187,65 @@ class CWS_STC {
 		add_action( 'init', array( &$this, 'maybe_solo_subscribe' ) );
 
 		if ( isset( $_REQUEST['wp-subscription-manager'] ) )
-			add_action( 'template_redirect', 'sg_subscribe_admin_standalone' );
+			add_action( 'template_redirect', array( &$this, 'single' ) );
+	}
+
+	function manager( $content ) {
+		global $post;
+		if ( $post->ID == $this->get_manage_id() ) {
+			$content = '';
+			ob_start();
+			sg_subscribe_admin( true );
+			$content = ob_get_contents();
+		}
+		return $content;
+	}
+
+	function get_manage_id() {
+		if ( !$this->settings['manage_id'] || !get_post( $this->settings['manage_id'] ) ) {
+			$this->settings['manage_id'] = wp_insert_post( array(
+				'post_title' => __( 'Comment Manager', 'subscribe-to-comments' ),
+				'post_type' => 'stc',
+				'post_status' => 'publish',
+				'comment_status' => 'closed',
+				'ping_status' => 'closed'
+			) );
+			$this->update_settings( $this->settings );
+		}
+		// wp_delete_post( $this->settings['manage_id'] );
+		// die('deleted');
+		return $this->settings['manage_id'];
+	}
+
+	function wp_title( $title, $sep, $reverse ) {
+		if ( 'right' == $reverse )
+			return __( 'Comment Subscription Manager' ) . ' ' . $sep . ' ';
+		else
+			return ' ' . $sep . ' ' . __( 'Comment Subscription Manager' );
+	}
+
+	function standalone_css() {
+		if ( 'twentyten' == get_option( 'template' ) ) {
+?>
+<style>
+.entry-meta, .entry-utility { display: none; }
+</style>
+<?php
+		}
+	}
+
+	function single() {
+		query_posts( array(
+			'post_type' => 'stc',
+			'p' => $this->get_manage_id(),
+			'post_status' => 'publish'
+		) );
+		add_action( 'wp_title', array( &$this, 'wp_title' ), 10, 5 );
+		add_action( 'wp_head', array( &$this, 'standalone_css' ) );
+		if ( $template = get_single_template() ) {
+			include( $template );
+			exit();
+		}
 	}
 
 	/**
@@ -273,6 +313,34 @@ class CWS_STC {
 		$this->errors[$type][] = $text;
 	}
 
+	function add_checkbox_to_default( $defaults ) {
+		$defaults['comment_notes_after'] .= $this->add_checkbox();
+		return $defaults;
+	}
+
+	function echo_add_checkbox() {
+		echo $this->add_checkbox();
+	}
+
+	function add_checkbox( $text = '' ) {
+		if ( _stc()->checkbox_shown )
+			return;
+		if ( !$email = _stc()->current_viewer_subscription_status() ) {
+			$checked_status = ( !empty( $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) && 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
+			$text .= "<p " . ( ( _stc()->clear_both ) ? 'style="clear: both;" ' : '' ) . 'class="subscribe-to-comments">
+			<input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" ' . ( ( $checked_status ) ? 'checked="checked" ' : '' ) . '/>
+			<label for="subscribe">' . _stc()->not_subscribed_text . '</label>
+			</p>';
+		} elseif ( $email == 'admin' && current_user_can( 'manage_options' ) ) {
+			$text .= '<p ' . ( ( _stc()->clear_both ) ? 'style="clear: both;" ' : '' ) . 'class="subscribe-to-comments">
+		' . str_replace( '[manager_link]', _stc()->manage_link($email, true, false ), _stc()->author_text ) . '</p>';
+		} else {
+			$text .= '<p ' . ( ( _stc()->clear_both ) ? 'style="clear: both;" ' : '' ) . 'class="subscribe-to-comments">' . 
+			str_replace( '[manager_link]', _stc()->manage_link( $email, true, false ), _stc()->subscribed_text ) . '</p>';
+		}
+		_stc()->checkbox_shown = true;
+		return $text;
+	}
 
 	function show_errors( $type='manager', $before_all='<div class="updated updated-error">', $after_all='</div>', $before_each='<p>', $after_each='</p>' ){
 		if ( is_array( $this->errors[$type] ) ) {
@@ -1207,7 +1275,7 @@ function sg_subscribe_admin( $standalone = false ) {
 	if ( $standalone ) {
 		_stc()->form_action = get_option( 'home' ) . '/?wp-subscription-manager=1';
 		_stc()->standalone = true;
-		ob_start( create_function( '$a', 'return str_replace( "<title>", "<title> " . __( "Subscription Manager", "subscribe-to-comments" ) . " &raquo; ", $a );' ) );
+		// ob_start( create_function( '$a', 'return str_replace( "<title>", "<title> " . __( "Comment Subscription Manager", "subscribe-to-comments" ) . " &raquo; ", $a );' ) );
 	} else {
 		_stc()->form_action = 'edit-comments.php?page=stc-management';
 		_stc()->standalone = false;
@@ -1282,31 +1350,7 @@ function sg_subscribe_admin( $standalone = false ) {
 
 	endswitch;
 
-
-
-	if ( _stc()->standalone ) {
-		if ( !_stc()->use_wp_style && !empty( _stc()->header ) ) {
-		@include( _stc()->header );
-		echo _stc()->before_manager;
-	} else { ?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-	<html>
-	<head>
-	<title><?php _e( 'Comment Subscription Manager', 'subscribe-to-comments' ); ?></title>
-
-		<style type="text/css" media="screen">
-			@import url( <?php echo get_option( 'siteurl' ); ?>/wp-admin/css/global.css );
-		</style>
-
-		<meta http-equiv="Content-Type" content="text/html;
-	charset=<?php bloginfo( 'charset' ); ?>" />
-
-	<?php _stc()->admin_head(); ?>
-
-	</head>
-	<body>
-	<?php } ?>
-	<?php } ?>
-
+?>
 
 	<?php _stc()->show_messages(); ?>
 
@@ -1314,7 +1358,9 @@ function sg_subscribe_admin( $standalone = false ) {
 
 	<?php if ( function_exists( 'screen_icon' ) ) screen_icon(); ?>
 	<div class="wrap">
-	<h2><?php _e( 'Comment Subscription Manager', 'subscribe-to-comments' ); ?></h2>
+		<?php if ( ! _stc()->standalone ) : ?>
+			<h2><?php _e( 'Comment Subscription Manager', 'subscribe-to-comments' ); ?></h2>
+		<?php endif; ?>
 
 	<?php if ( !empty( _stc()->ref ) ) : ?>
 	<?php _stc()->add_message( sprintf( __( 'Return to the page you were viewing: %s', 'subscribe-to-comments' ), _stc()->entry_link( $blog_id, url_to_postid( _stc()->ref ), _stc()->ref ) ) ); ?>
@@ -1516,7 +1562,6 @@ function checkAll(form) {
 	<div class="wrap">
 	<h2><?php _e( 'Advanced Options', 'subscribe-to-comments' ); ?></h2>
 
-
 			<h3><?php _e( 'Block All Notifications', 'subscribe-to-comments' ); ?></h3>
 
 				<form name="blockemail" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
@@ -1571,8 +1616,6 @@ function checkAll(form) {
 	<?php endif; ?>
 	<?php endif; ?>
 
-
-<?php die(); // stop WP from loading ?>
 <?php }
 
 // Bootstrap the whole thing
