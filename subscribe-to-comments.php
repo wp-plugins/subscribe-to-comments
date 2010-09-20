@@ -189,8 +189,8 @@ class CWS_STC {
 
 		// priority is very low (50) because we want to let anti-spam plugins have their way first.
 		add_action( 'comment_post', array( &$this, 'send_notifications' ) );
-		add_action( 'comment_post', array( &$this, 'maybe_add_subscriber' );
-		add_action( 'wp_set_comment_status', array( &$this, 'send_notifications' );
+		add_action( 'comment_post', array( &$this, 'maybe_add_subscriber' ) );
+		add_action( 'wp_set_comment_status', array( &$this, 'send_notifications' ) );
 		add_action( 'admin_menu', array( &$this, 'add_admin_menu' ) );
 		add_action( 'admin_head', array( &$this, 'admin_head' ) );
 		add_action( 'edit_comment', array( &$this, 'on_edit' ) );
