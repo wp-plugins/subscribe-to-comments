@@ -134,7 +134,7 @@ class CWS_STC {
 		$this->db_upgrade_check();
 
 		$this->register_hooks();
-		register_uninstall_hook( __FILE__, array( &$this, 'uninstall' ) );
+		register_uninstall_hook( __FILE__, 'cws_stc_uninstall_hook' );
 
 		$this->settings = get_option( 'sg_subscribe_settings' );
 
@@ -1617,6 +1617,10 @@ function checkAll(form) {
 	<?php endif; ?>
 
 <?php }
+
+function cws_stc_uninstall_hook() {
+	_stc()->uninstall();
+}
 
 // Bootstrap the whole thing
 _stc();
