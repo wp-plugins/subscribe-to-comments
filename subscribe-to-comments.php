@@ -343,7 +343,7 @@ class CWS_STC {
 	}
 
 	function show_errors( $type='manager', $before_all='<div class="updated updated-error">', $after_all='</div>', $before_each='<p>', $after_each='</p>' ){
-		if ( is_array( $this->errors[$type] ) ) {
+		if ( isset( $this->errors[$type] ) && is_array( $this->errors[$type] ) ) {
 			echo $before_all;
 			foreach ( $this->errors[$type] as $error )
 				echo $before_each . $error . $after_each;
@@ -385,7 +385,7 @@ class CWS_STC {
 		global $wpdb, $blog_id;
 		if ( NULL == $bid )
 			$bid = $blog_id;
-		if ( is_array( $this->bid_post_subscriptions[$bid][$postid] ) )
+		if ( isset( $this->bid_post_subscriptions[$bid][$postid] ) && is_array( $this->bid_post_subscriptions[$bid][$postid] ) )
 			return $this->bid_post_subscriptions[$bid][$postid];
 		$postid = (int) $postid;
 		if ( $this->is_multisite() ) {
@@ -441,7 +441,7 @@ class CWS_STC {
 	}
 
 	function maybe_solo_subscribe() {
-		if ( $_POST['solo-comment-subscribe'] == 'solo-comment-subscribe' && is_numeric( $_POST['postid'] ) )
+		if ( isset( $_POST['solo-comment-subscribe'] ) && $_POST['solo-comment-subscribe'] == 'solo-comment-subscribe' && isset( $_POST['postid'] ) && is_numeric( $_POST['postid'] ) )
 				$this->solo_subscribe( stripslashes( $_POST['email'] ), (int) $_POST['postid'] );
 	}
 
@@ -888,6 +888,7 @@ class CWS_STC {
 
 	function entry_link( $bid, $postid, $uri='') {
 		global $blog_id;
+		$switched = false;
 		if ( $blog_id != $bid ) {
 			$switched = true;
 			switch_to_blog( $bid );
@@ -1420,7 +1421,7 @@ function sg_subscribe_admin( $standalone = false ) {
 
 	<?php if ( current_user_can( 'manage_options' ) ) { ?>
 
-			<?php if ( $_REQUEST['email'] ) : ?>
+			<?php if ( isset( $_REQUEST['email'] ) && $_REQUEST['email'] ) : ?>
 				<p><a href="<?php echo clean_url( _stc()->form_action ); ?>"><?php _e( '&laquo; Back' ); ?></a></p>
 			<?php endif; ?>
 
@@ -1439,15 +1440,15 @@ function sg_subscribe_admin( $standalone = false ) {
 			</p>
 			</form>
 
-<?php if ( !$_REQUEST['email'] ) : ?>
-			<?php if ( !$_REQUEST['showallsubscribers'] ) : ?>
+<?php if ( !isset( $_REQUEST['email'] ) || !$_REQUEST['email'] ) : ?>
+			<?php if ( !isset( $_REQUEST['showallsubscribers'] ) || !$_REQUEST['showallsubscribers'] ) : ?>
 				<h3><?php _e( 'Top Subscriber List', 'subscribe-to-comments' ); ?></h3>
 			<?php else : ?>
 				<h3><?php _e( 'Subscriber List', 'subscribe-to-comments' ); ?></h3>
 			<?php endif; ?>
 
 <?php
-			$stc_limit = ( !$_REQUEST['showallsubscribers'] ) ? 'LIMIT 25' : '';
+			$stc_limit = ( !isset( $_REQUEST['showallsubscribers'] ) || !$_REQUEST['showallsubscribers'] ) ? 'LIMIT 25' : '';
 			if ( _stc()->is_multisite() ) {
 				$all_pm_subscriptions = $wpdb->get_results( "SELECT DISTINCT email, count(post_id) as ccount FROM _stc()->ms_table WHERE status = 'active' GROUP BY email ORDER BY ccount DESC $stc_limit" );
 			} else {
@@ -1462,9 +1463,9 @@ function sg_subscribe_admin( $standalone = false ) {
 					$all_subscriptions[$sub->email] += (int) $sub->ccount;
 			}
 
-if ( !$_REQUEST['showallsubscribers'] ) : ?>
+if ( !isset( $_REQUEST['showallsubscribers'] ) || !$_REQUEST['showallsubscribers'] ) : ?>
 	<p><a href="<?php echo clean_url( esc_attr( add_query_arg( 'showallsubscribers', '1', _stc()->form_action ) ) ); ?>"><?php _e( 'Show all subscribers', 'subscribe-to-comments' ); ?></a></p>
-<?php elseif ( !$_REQUEST['showccfield'] ) : ?>
+<?php elseif ( !isset( $_REQUEST['showccfield'] ) || !$_REQUEST['showccfield'] ) : ?>
 	<p><a href="<?php echo add_query_arg( 'showccfield', '1' ); ?>"><?php _e( 'Show list of subscribers in <code>CC:</code>-field format (for bulk e-mailing)', 'subscribe-to-comments' ); ?></a></p>
 <?php else : ?>
 	<p><a href="<?php echo clean_url( _stc()->form_action ); ?>"><?php _e( '&laquo; Back to regular view' ); ?></a></p>
