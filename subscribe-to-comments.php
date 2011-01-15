@@ -335,7 +335,7 @@ class CWS_STC {
 			$text .= '<p ' . ( ( _stc()->clear_both ) ? 'style="clear: both;" ' : '' ) . 'class="subscribe-to-comments">
 		' . str_replace( '[manager_link]', _stc()->manage_link($email, true, false ), _stc()->author_text ) . '</p>';
 		} else {
-			$text .= '<p ' . ( ( _stc()->clear_both ) ? 'style="clear: both;" ' : '' ) . 'class="subscribe-to-comments">' . 
+			$text .= '<p ' . ( ( _stc()->clear_both ) ? 'style="clear: both;" ' : '' ) . 'class="subscribe-to-comments">' .
 			str_replace( '[manager_link]', _stc()->manage_link( $email, true, false ), _stc()->subscribed_text ) . '</p>';
 		}
 		_stc()->checkbox_shown = true;
@@ -1272,7 +1272,7 @@ function sg_subscribe_admin_standalone() {
 function sg_subscribe_admin( $standalone = false ) {
 	global $wpdb, $sg_subscribe, $wp_version, $blog_id;
 
-	
+
 	if ( $standalone ) {
 		_stc()->form_action = get_option( 'home' ) . '/?wp-subscription-manager=1';
 		_stc()->standalone = true;
