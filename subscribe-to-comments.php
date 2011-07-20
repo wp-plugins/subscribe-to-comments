@@ -28,7 +28,7 @@ function _stc() {
 		 * @global CWS_STC $sg_subscribe
 		 * @deprecated
 		 */
-		$sg_subscribe &= $_cws_stc; // Backwards compat
+		$sg_subscribe = &$_cws_stc; // Backwards compat
 	}
 	return $_cws_stc;
 }
@@ -141,7 +141,7 @@ class CWS_STC {
 		$this->salt = $this->settings['salt'];
 		$this->site_email = ( is_email( $this->settings['email'] ) && $this->settings['email'] != 'email@example.com' ) ? $this->settings['email'] : get_bloginfo( 'admin_email' );
 		$this->site_name = ( $this->settings['name'] != 'YOUR NAME' && !empty( $this->settings['name'] ) ) ? $this->settings['name'] : get_bloginfo( 'name' );
-		$this->default_subscribed = ( $this->settings['default_subscribed'] ) ? true : false;
+		$this->default_subscribed = ( isset($this->settings['default_subscribed']) ) ? true : false;
 
 		$this->not_subscribed_text = $this->settings['not_subscribed_text'];
 		$this->subscribed_text = $this->settings['subscribed_text'];
@@ -202,7 +202,7 @@ class CWS_STC {
 	}
 
 	function get_manage_id() {
-		if ( !$this->settings['manage_id'] || !get_post( $this->settings['manage_id'] ) ) {
+		if ( !isset ($this->settings['manage_id']) || !get_post( $this->settings['manage_id'] ) ) {
 			$this->settings['manage_id'] = wp_insert_post( array(
 				'post_title' => __( 'Comment Manager', 'subscribe-to-comments' ),
 				'post_type' => 'stc',
@@ -894,12 +894,12 @@ class CWS_STC {
 			switch_to_blog( $bid );
 		}
 		if ( empty( $uri ) )
-			$uri = clean_url( get_permalink( $postid ) );
+			$uri = esc_url( get_permalink( $postid ) );
 		$postid = (int) $postid;
 		$title = get_the_title( $postid );
 		if ( empty( $title ) )
 			$title = __( 'click here', 'subscribe-to-comments' );
-		$output = '<a href="'.$uri.'">'. wp_specialchars( get_option( 'blogname' ) ) . ' &rarr; ' . $title.'</a>';
+		$output = '<a href="'.$uri.'">'. esc_html( get_option( 'blogname' ) ) . ' &rarr; ' . $title.'</a>';
 		if ( $switched )
 			restore_current_blog();
 		return $output;
@@ -920,6 +920,8 @@ class CWS_STC {
 
 	function db_upgrade_check () {
 		global $wpdb, $blog_id;
+
+		$update = false;
 
 		// add the options
 		add_option( 'sg_subscribe_settings', array( 'use_custom_style' => '', 'email' => get_bloginfo( 'admin_email' ), 'name' => get_bloginfo( 'name' ), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'not_subscribed_text' => __( 'Notify me of followup comments via e-mail', 'subscribe-to-comments' ), 'subscribed_text' => __( 'You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments' ), 'author_text' => __( 'You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments' ), 'version' => 0, 'double_opt_in' => '', 'subscribed_format' => '%NAME%' ) );
@@ -1178,7 +1180,7 @@ function form_setting( $option_name ) {
 
 function textarea_setting( $optname ) {
 	$options = get_option( 'sg_subscribe_settings' );
-	return wp_specialchars( $options[$optname] );
+	return esc_textarea( $options[$optname] );
 }
 
 function options_page() {
@@ -1422,7 +1424,7 @@ function sg_subscribe_admin( $standalone = false ) {
 	<?php if ( current_user_can( 'manage_options' ) ) { ?>
 
 			<?php if ( isset( $_REQUEST['email'] ) && $_REQUEST['email'] ) : ?>
-				<p><a href="<?php echo clean_url( _stc()->form_action ); ?>"><?php _e( '&laquo; Back' ); ?></a></p>
+				<p><a href="<?php echo esc_url( _stc()->form_action ); ?>"><?php _e( '&laquo; Back' ); ?></a></p>
 			<?php endif; ?>
 
 			<h3><?php _e( 'Find Subscriptions', 'subscribe-to-comments' ); ?></h3>
@@ -1431,7 +1433,7 @@ function sg_subscribe_admin( $standalone = false ) {
 			<?php _e( 'Enter an e-mail address to view its subscriptions or undo a block.', 'subscribe-to-comments' ); ?>
 			</p>
 
-			<form name="getemail" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
+			<form name="getemail" method="post" action="<?php echo esc_url( _stc()->form_action ); ?>">
 			<input type="hidden" name="ref" value="<?php echo _stc()->ref; ?>" />
 
 			<p>
@@ -1464,11 +1466,12 @@ function sg_subscribe_admin( $standalone = false ) {
 			}
 
 if ( !isset( $_REQUEST['showallsubscribers'] ) || !$_REQUEST['showallsubscribers'] ) : ?>
-	<p><a href="<?php echo clean_url( esc_attr( add_query_arg( 'showallsubscribers', '1', _stc()->form_action ) ) ); ?>"><?php _e( 'Show all subscribers', 'subscribe-to-comments' ); ?></a></p>
+	<p><a href="<?php echo esc_url( esc_attr( add_query_arg( 'showallsubscribers', '1', _stc()->form_action ) ) ); ?>"><?php _e( 'Show all subscribers',
+'subscribe-to-comments' ); ?></a></p>
 <?php elseif ( !isset( $_REQUEST['showccfield'] ) || !$_REQUEST['showccfield'] ) : ?>
 	<p><a href="<?php echo add_query_arg( 'showccfield', '1' ); ?>"><?php _e( 'Show list of subscribers in <code>CC:</code>-field format (for bulk e-mailing)', 'subscribe-to-comments' ); ?></a></p>
 <?php else : ?>
-	<p><a href="<?php echo clean_url( _stc()->form_action ); ?>"><?php _e( '&laquo; Back to regular view' ); ?></a></p>
+	<p><a href="<?php echo esc_url( _stc()->form_action ); ?>"><?php _e( '&laquo; Back to regular view' ); ?></a></p>
 	<p><textarea cols="60" rows="10"><?php echo implode( ', ', array_keys( $all_subscriptions ) ); ?></textarea></p>
 <?php endif;
 
@@ -1478,7 +1481,8 @@ if ( !isset( $_REQUEST['showallsubscribers'] ) || !$_REQUEST['showallsubscribers
 					echo "<ul>\n";
 					foreach ( (array) $all_subscriptions as $email => $ccount ) {
 						$enc_email = urlencode( $email );
-						echo "<li>($ccount) <a href='" . clean_url( _stc()->form_action . "&email=$enc_email" ) . "'>" . wp_specialchars( $email ) . "</a></li>\n";
+						echo "<li>($ccount) <a href='" . esc_url( _stc()->form_action . "&email=$enc_email" ) . "'>" . esc_html( $email ) .
+"</a></li>\n";
 					}
 					echo "</ul>\n";
 				}
@@ -1538,7 +1542,7 @@ function checkAll(form) {
 				<?php printf( __( '<strong>%s</strong> is subscribed to the posts listed below. To unsubscribe to one or more posts, click the checkbox next to the title, then click "Remove Selected Subscription(s)" at the bottom of the list.', 'subscribe-to-comments' ), _stc()->email ); ?>
 				</p>
 
-				<form name="removeSubscription" id="removeSubscription" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
+				<form name="removeSubscription" id="removeSubscription" method="post" action="<?php echo esc_url( _stc()->form_action ); ?>">
 				<input type="hidden" name="removesubscrips" value="removesubscrips" />
 	<?php _stc()->hidden_form_fields(); ?>
 
@@ -1565,7 +1569,7 @@ function checkAll(form) {
 
 			<h3><?php _e( 'Block All Notifications', 'subscribe-to-comments' ); ?></h3>
 
-				<form name="blockemail" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
+				<form name="blockemail" method="post" action="<?php echo esc_url( _stc()->form_action ); ?>">
 				<input type="hidden" name="blockemail" value="blockemail" />
 	<?php _stc()->hidden_form_fields(); ?>
 
@@ -1582,7 +1586,7 @@ function checkAll(form) {
 
 			<h3><?php _e( 'Change E-mail Address', 'subscribe-to-comments' ); ?></h3>
 
-				<form name="changeemailrequest" method="post" action="<?php echo clean_url( _stc()->form_action ); ?>">
+				<form name="changeemailrequest" method="post" action="<?php echo esc_url( _stc()->form_action ); ?>">
 				<input type="hidden" name="changeemailrequest" value="changeemailrequest" />
 	<?php _stc()->hidden_form_fields(); ?>
 
