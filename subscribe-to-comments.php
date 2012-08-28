@@ -1173,7 +1173,10 @@ function form_setting( $option_name ) {
 
 function textarea_setting( $optname ) {
 	$options = get_option( 'sg_subscribe_settings' );
-	return esc_textarea( $options[$optname] );
+	if ( isset( $options[$optname] ) )
+		return esc_textarea( $options[$optname] );
+	else
+		return '';
 }
 
 function options_page() {
