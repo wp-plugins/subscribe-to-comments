@@ -158,25 +158,25 @@ class CWS_STC {
 	 * Registers this plugin's WordPress hooks
 	 */
 	function register_hooks() {
-		add_action( 'admin_init', array( &$this, 'admin_init' ) );
+		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		/*
 			This will be overridden if the user manually places the function
 			in the comments form before the comment_form do_action() call
 			or if the user has a theme that supports a hookable comments form
 		*/
-		add_action( 'comment_form', array( &$this, 'echo_add_checkbox' ) );
+		add_action( 'comment_form', array( $this, 'echo_add_checkbox' ) );
 		// Hook in to themes that use comment_form()
-		add_filter( 'comment_form_defaults', array( &$this, 'add_checkbox_to_default' ) );
+		add_filter( 'comment_form_defaults', array( $this, 'add_checkbox_to_default' ) );
 
 		// priority is very low (50) because we want to let anti-spam plugins have their way first.
-		add_action( 'comment_post', array( &$this, 'send_notifications' ) );
-		add_action( 'comment_post', array( &$this, 'maybe_add_subscriber' ) );
-		add_action( 'wp_set_comment_status', array( &$this, 'send_notifications' ) );
-		add_action( 'admin_menu', array( &$this, 'add_admin_menu' ) );
-		add_action( 'admin_head', array( &$this, 'admin_head' ) );
-		add_action( 'edit_comment', array( &$this, 'on_edit' ) );
-		add_action( 'delete_comment', array( &$this, 'on_delete' ) );
-		add_filter( 'the_content', array( &$this, 'manager' ) );
+		add_action( 'comment_post', array( $this, 'send_notifications' ) );
+		add_action( 'comment_post', array( $this, 'maybe_add_subscriber' ) );
+		add_action( 'wp_set_comment_status', array( $this, 'send_notifications' ) );
+		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
+		add_action( 'admin_head', array( $this, 'admin_head' ) );
+		add_action( 'edit_comment', array( $this, 'on_edit' ) );
+		add_action( 'delete_comment', array( $this, 'on_delete' ) );
+		add_filter( 'the_content', array( $this, 'manager' ) );
 
 		add_filter( 'get_comment_author_link', 'stc_comment_author_filter' );
 
@@ -184,10 +184,10 @@ class CWS_STC {
 		add_filter( 'preprocess_comment', 'stc_checkbox_state', 1 );
 
 		// detect "subscribe without commenting" attempts
-		add_action( 'init', array( &$this, 'maybe_solo_subscribe' ) );
+		add_action( 'init', array( $this, 'maybe_solo_subscribe' ) );
 
 		if ( isset( $_REQUEST['wp-subscription-manager'] ) )
-			add_action( 'template_redirect', array( &$this, 'single' ) );
+			add_action( 'template_redirect', array( $this, 'single' ) );
 	}
 
 	function manager( $content ) {
@@ -240,8 +240,8 @@ class CWS_STC {
 			'p' => $this->get_manage_id(),
 			'post_status' => 'publish'
 		) );
-		add_action( 'wp_title', array( &$this, 'wp_title' ), 10, 5 );
-		add_action( 'wp_head', array( &$this, 'standalone_css' ) );
+		add_action( 'wp_title', array( $this, 'wp_title' ), 10, 5 );
+		add_action( 'wp_head', array( $this, 'standalone_css' ) );
 		if ( $template = get_single_template() ) {
 			include( $template );
 			exit();
