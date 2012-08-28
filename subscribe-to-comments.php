@@ -158,25 +158,24 @@ class CWS_STC {
 	 * Registers this plugin's WordPress hooks
 	 */
 	function register_hooks() {
-		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		/*
 			This will be overridden if the user manually places the function
 			in the comments form before the comment_form do_action() call
 			or if the user has a theme that supports a hookable comments form
 		*/
-		add_action( 'comment_form', array( $this, 'echo_add_checkbox' ) );
+		add_action( 'comment_form',          array( $this, 'echo_add_checkbox'       ));
 		// Hook in to themes that use comment_form()
-		add_filter( 'comment_form_defaults', array( $this, 'add_checkbox_to_default' ) );
+		add_filter( 'comment_form_defaults', array( $this, 'add_checkbox_to_default' ));
 
 		// priority is very low (50) because we want to let anti-spam plugins have their way first.
-		add_action( 'comment_post', array( $this, 'send_notifications' ) );
-		add_action( 'comment_post', array( $this, 'maybe_add_subscriber' ) );
-		add_action( 'wp_set_comment_status', array( $this, 'send_notifications' ) );
-		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
-		add_action( 'admin_head', array( $this, 'admin_head' ) );
-		add_action( 'edit_comment', array( $this, 'on_edit' ) );
-		add_action( 'delete_comment', array( $this, 'on_delete' ) );
-		add_filter( 'the_content', array( $this, 'manager' ) );
+		add_action( 'comment_post',          array( $this, 'send_notifications'      ));
+		add_action( 'comment_post',          array( $this, 'maybe_add_subscriber'    ));
+		add_action( 'wp_set_comment_status', array( $this, 'send_notifications'      ));
+		add_action( 'admin_menu',            array( $this, 'add_admin_menu'          ));
+		add_action( 'admin_head',            array( $this, 'admin_head'              ));
+		add_action( 'edit_comment',          array( $this, 'on_edit'                 ));
+		add_action( 'delete_comment',        array( $this, 'on_delete'               ));
+		add_filter( 'the_content',           array( $this, 'manager'                 ));
 
 		add_filter( 'get_comment_author_link', 'stc_comment_author_filter' );
 
@@ -252,34 +251,6 @@ class CWS_STC {
 		delete_option( 'sg_subscribe_settings' );
 	}
 
-	function admin_init() {
-		// menu_page_url() was introduced in WP 3.0
-		if ( !function_exists( 'menu_page_url' ) ) :
-
-		function menu_page_url( $menu_slug, $echo = true ) {
-			global $_parent_pages;
-
-			if ( isset( $_parent_pages[$menu_slug] ) ) {
-				if ( $_parent_pages[$menu_slug] ) {
-					$url = admin_url( add_query_arg( 'page', $menu_slug, $_parent_pages[$menu_slug] ) );
-				} else {
-					$url = admin_url( 'admin.php?page=' . $menu_slug );
-				}
-			} else {
-				$url = '';
-			}
-
-			$url = esc_url( $url );
-
-			if ( $echo )
-				echo $url;
-
-			return $url;
-		}
-		endif;
-
-	}
-
 	function manager_init() {
 		$this->messages = '';
 		$this->use_wp_style = ( $this->settings['use_custom_style'] == 'use_custom_style' ) ? false : true;
@@ -319,7 +290,7 @@ class CWS_STC {
 		if ( _stc()->checkbox_shown )
 			return;
 		if ( !$email = _stc()->current_viewer_subscription_status() ) {
-			$checked_status = ( !empty( $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) && 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) ? true : false;
+			$checked_status = (bool) ( !empty( $_COOKIE['subscribe_checkbox_'.COOKIEHASH] ) && 'checked' == $_COOKIE['subscribe_checkbox_'.COOKIEHASH] );
 			$text .= "<p " . ( ( _stc()->clear_both ) ? 'style="clear: both;" ' : '' ) . 'class="subscribe-to-comments">
 			<input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;" ' . ( ( $checked_status ) ? 'checked="checked" ' : '' ) . '/>
 			<label for="subscribe">' . _stc()->not_subscribed_text . '</label>
