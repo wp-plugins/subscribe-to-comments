@@ -3,7 +3,7 @@ Tags: comments, subscription, email
 Contributors: markjaquith, joen
 Requires at least: 2.9
 Tested up to: 3.0
-Stable tag: trunk
+Stable tag: 2.1.2
 
 Subscribe to Comments allows commenters on an entry to subscribe to e-mail notifications for subsequent comments.
 
