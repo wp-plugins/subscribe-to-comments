@@ -1156,7 +1156,7 @@ function options_page_contents() {
 
 function checkflag( $optname ) {
 	$options = get_option( 'sg_subscribe_settings' );
-	if ( $options[$optname] != $optname )
+	if ( !isset( $options[$optname] ) || $options[$optname] != $optname )
 		return;
 	return ' checked="checked"';
 }
@@ -1168,7 +1168,10 @@ function checkflag( $optname ) {
  */
 function form_setting( $option_name ) {
 	$options = get_option( 'sg_subscribe_settings' );
-	return esc_attr( $options[$option_name] );
+	if ( isset( $options[$option_name] ) )
+		return esc_attr( $options[$option_name] );
+	else
+		return '';
 }
 
 function textarea_setting( $optname ) {
