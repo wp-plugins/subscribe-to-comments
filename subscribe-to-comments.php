@@ -248,13 +248,6 @@ class CWS_STC {
 		}
 	}
 
-	/**
-	 * PHP 4 constructor
-	 */
-	function CWS_STC() {
-		return $this->__construct();
-	}
-
 	function uninstall() {
 		delete_option( 'sg_subscribe_settings' );
 	}
