@@ -195,7 +195,7 @@ class CWS_STC {
 			$content = '';
 			ob_start();
 			sg_subscribe_admin( true );
-			$content = ob_get_contents();
+			$content = ob_get_clean();
 		}
 		return $content;
 	}
@@ -398,10 +398,20 @@ class CWS_STC {
 		foreach ( (array) $subscriptions as $subscription)
 			$this->email_subscriptions[] = array( ( isset( $subscription->blog_id ) ) ? $subscription->blog_id : $blog_id, $subscription->post_id );
 		if ( is_array( $this->email_subscriptions ) ) {
-			usort( $this->email_subscriptions, create_function( '$a,$b', 'if ($a[0] == $b[0]) { if ( $a[1] == $a[1] ) { return 0; } return ( $a[1] < $b[1] ) ? -1 : 1;} else { return ( $a[0] < $b[0] ) ? -1 : 1; }' ) );
+			usort( $this->email_subscriptions, array( $this, 'email_sort' ) );
 			return $this->email_subscriptions;
 		}
 		return false;
+	}
+
+	function email_sort( $a, $b ) {
+		if ( $a[0] == $b[0] ) {
+			if ( $a[1] == $a[1] )
+				return 0;
+			return ( $a[1] < $b[1] ) ? -1 : 1;
+		} else {
+			return ( $a[0] < $b[0] ) ? -1 : 1;
+		}
 	}
 
 	function maybe_solo_subscribe() {
@@ -1248,7 +1258,6 @@ function sg_subscribe_admin( $standalone = false ) {
 	if ( $standalone ) {
 		_stc()->form_action = get_option( 'home' ) . '/?wp-subscription-manager=1';
 		_stc()->standalone = true;
-		// ob_start( create_function( '$a', 'return str_replace( "<title>", "<title> " . __( "Comment Subscription Manager", "subscribe-to-comments" ) . " &raquo; ", $a );' ) );
 	} else {
 		_stc()->form_action = 'edit-comments.php?page=stc-management';
 		_stc()->standalone = false;
