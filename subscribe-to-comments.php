@@ -1009,7 +1009,7 @@ class CWS_STC {
 		$link = add_query_arg( 'ref', rawurlencode( 'http://' . $_SERVER['HTTP_HOST'] . esc_attr( $_SERVER['REQUEST_URI'] ) ), $link);
 		//$link = str_replace('+', '%2B', $link);
 		if ( $html )
-			$link = htmlentities( $link );
+			$link = esc_url( $link );
 		if ( !$echo )
 			return $link;
 		echo $link;
