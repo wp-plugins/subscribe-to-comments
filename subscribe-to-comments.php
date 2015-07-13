@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Subscribe To Comments
-Version: 2.3-bleeding
+Version: 2.3
 Plugin URI: http://txfx.net/wordpress-plugins/subscribe-to-comments/
 Description: Allows readers to choose to receive notifications of new comments that are posted to an entry.
 Author: Mark Jaquith
