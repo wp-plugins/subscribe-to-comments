@@ -136,7 +136,7 @@ class CWS_STC {
 		$this->register_hooks();
 		register_uninstall_hook( __FILE__, 'cws_stc_uninstall_hook' );
 
-		$this->settings = get_option( 'sg_subscribe_settings' );
+		$this->settings = $this->get_options();
 
 		$this->salt = $this->settings['salt'];
 		$this->site_email = ( is_email( $this->settings['email'] ) && $this->settings['email'] != 'email@example.com' ) ? $this->settings['email'] : get_bloginfo( 'admin_email' );
@@ -795,7 +795,7 @@ class CWS_STC {
 
 
 	function send_pending_nag( $cid ) {
-		$comment =& get_comment( $cid );
+		$comment = get_comment( $cid );
 		$email = strtolower( $comment->comment_author_email );
 		$subject = __( 'Subscription Confirmation', 'subscribe-to-comments' );
 		$message = sprintf( __( "You are receiving this message to confirm your comment subscription at \"%s\"\n\n", 'subscribe-to-comments' ), get_bloginfo( 'blogname' ) );
@@ -900,7 +900,7 @@ class CWS_STC {
 		// add the options
 		add_option( 'sg_subscribe_settings', array( 'use_custom_style' => '', 'email' => get_bloginfo( 'admin_email' ), 'name' => get_bloginfo( 'name' ), 'header' => '[theme_path]/header.php', 'sidebar' => '', 'footer' => '[theme_path]/footer.php', 'before_manager' => '<div id="content" class="widecolumn subscription-manager">', 'after_manager' => '</div>', 'not_subscribed_text' => __( 'Notify me of followup comments via e-mail', 'subscribe-to-comments' ), 'subscribed_text' => __( 'You are subscribed to this entry.  <a href="[manager_link]">Manage your subscriptions</a>.', 'subscribe-to-comments' ), 'author_text' => __( 'You are the author of this entry.  <a href="[manager_link]">Manage subscriptions</a>.', 'subscribe-to-comments' ), 'version' => 0, 'double_opt_in' => '', 'subscribed_format' => '%NAME%' ) );
 
-		$settings = get_option( 'sg_subscribe_settings' );
+		$settings = $this->get_options();
 
 		if ( !isset( $settings['salt'] ) ) {
 			$settings['salt'] = md5( md5( uniqid( rand() . rand() . rand() . rand() . rand(), true ) ) ); // random MD5 hash
@@ -970,9 +970,24 @@ class CWS_STC {
 
 	function update_settings( $settings ) {
 		$settings['version'] = $this->version;
-		if ( strpos( $settings['subscribed_format'], '%NAME%' ) === false )
-			$settings['subscribed_format'] = '%NAME%';
+		$settings = $this->sanitize_settings( $settings );
 		update_option( 'sg_subscribe_settings', $settings );
+	}
+
+	function sanitize_settings( $settings ) {
+		if ( strpos( $settings['subscribed_format'], '%NAME%' ) === false ) {
+			$settings['subscribed_format'] = '%NAME%';
+		}
+		if ( ! empty( $settings['header'] ) ) {
+			$settings['header'] = '[theme_path]/header.php';
+		}
+		if ( ! empty( $settings['sidebar'] ) ) {
+			$settings['sidebar'] = '[theme_path]/sidebar.php';
+		}
+		if ( ! empty( $settings['footer'] ) ) {
+			$settings['footer'] = '[theme_path]/footer.php';
+		}
+		return $settings;
 	}
 
 
@@ -1135,8 +1150,12 @@ function options_page_contents() {
 	echo '</div>';
 }
 
+function get_options() {
+	return $this->sanitize_settings( get_option( 'sg_subscribe_settings' ) );
+}
+
 function checkflag( $optname ) {
-	$options = get_option( 'sg_subscribe_settings' );
+	$options = $this->get_options();
 	if ( !isset( $options[$optname] ) || $options[$optname] != $optname )
 		return;
 	return ' checked="checked"';
@@ -1148,7 +1167,7 @@ function checkflag( $optname ) {
  * @return string the sanitized setting
  */
 function form_setting( $option_name ) {
-	$options = get_option( 'sg_subscribe_settings' );
+	$options = $this->get_options();
 	if ( isset( $options[$option_name] ) )
 		return esc_attr( $options[$option_name] );
 	else
@@ -1156,7 +1175,7 @@ function form_setting( $option_name ) {
 }
 
 function textarea_setting( $optname ) {
-	$options = get_option( 'sg_subscribe_settings' );
+	$options = $this->get_options();
 	if ( isset( $options[$optname] ) )
 		return esc_textarea( $options[$optname] );
 	else
